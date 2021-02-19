@@ -1,15 +1,50 @@
 #ifndef DATAHOLDERLOCALSOCKET_H
 #define DATAHOLDERLOCALSOCKET_H
 
-#include <QObject>
+///[!] localsockets
+#include "localsockets/regularserversocket.h"
 
-class DataHolderLocalSocket : public QObject
+
+#include "dataholdersharedobject.h"
+
+class DataHolderLocalSocket : public RegularServerSocket
 {
     Q_OBJECT
 public:
-    explicit DataHolderLocalSocket(QObject *parent = nullptr);
+    explicit DataHolderLocalSocket(DataHolderSharedObject *dhData, const bool &verboseMode, QObject *parent = nullptr);
+
+    DataHolderSharedObject *dhData;
+
+    quint16 getZombieCommand();
+
+    QVariantHash getOkMessage(const QVariant &messagetag, const QVariant &objecttag);
+
+    QVariantHash getErrorMessage(const QString &message, const QVariant &messagetag, const QVariant &objecttag);
 
 signals:
+
+
+
+public slots:
+    void configureZombieKiller();
+
+    void decodeReadData(const QVariant &dataVar, const quint16 &command);
+
+
+    void addDataFromTheFile(const QVariantHash &hash);
+
+private:
+    QVariantHash onDATAHOLDER_ADD_POLLDATA(const QVariantHash &hash);
+
+    QVariantHash onDATAHOLDER_GET_POLLDATA(const QVariantHash &hash);
+
+    QVariantHash getHashRecord(const quint16 &pollCode, const QString &ni, const DHMsecRecord &pollCodeData);
+
+
+    void appendData2file(const QVariantHash &hash);
+
+    QJsonArray getFileContent();
+
 
 };
 

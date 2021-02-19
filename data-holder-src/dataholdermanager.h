@@ -31,7 +31,10 @@ public slots:
 
     void createObjectsLater();
 
+    void append2log(QString message);//it adds date time automatically
 
+
+    void reloadDataFromTheFile();
 
 private:
 

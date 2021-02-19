@@ -24,8 +24,18 @@ DEFINES += "MYAPPNAME=\"\\\"data-holder\\\"\""
 DEFINES += "MYAPPOWNER=\"\\\"KTS-Intek Ltd\\\"\""
 DEFINES += "MYAPPOWNERSITE=\"\\\"http://kts-intek.com\\\"\""
 
-include(../../../Matilda-units/ipc/sharedmemory/sharedmemory.pri)
+
+DEFINES += DISABLE_RUN_PROCESS
+
 #include(../../Matilda-units/ipc/localsockets/localsockets.pri)
+
+include(../../../Matilda-units/matilda-base/MatildaIO/MatildaIO.pri)
+include(../../../Matilda-units/matilda-base/type-converter/type-converter.pri)
+
+include(../../../Matilda-units/ipc/localsockets/localsockets.pri)
+
+include(../../../Matilda-units/ipc/sharedmemory/sharedmemory.pri)
+
 
 linux:{
     target.path = /opt/matilda/bin
@@ -40,11 +50,6 @@ SOURCES += \
         data-holder-src/dataholdersharedmemoryobject.cpp \
         data-holder-src/dataholdersharedobject.cpp \
         main.cpp
-
-# Default rules for deployment.
-qnx: target.path = /tmp/$${TARGET}/bin
-else: unix:!android: target.path = /opt/$${TARGET}/bin
-!isEmpty(target.path): INSTALLS += target
 
 HEADERS += \
     data-holder-src/dataholderlocalserver.h \

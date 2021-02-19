@@ -2,6 +2,8 @@
 #define DATAHOLDERSHAREDOBJECT_H
 
 #include <QObject>
+#include <QDebug>
+#include <QDataStream>
 #include <QReadWriteLock>
 
 #include "dataholdertypes.h"
@@ -32,6 +34,8 @@ public slots:
 
 private:
     void makeDataHolderTypesRegistration();
+
+
 
 
     QReadWriteLock myLock;

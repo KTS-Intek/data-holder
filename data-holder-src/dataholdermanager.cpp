@@ -6,6 +6,9 @@
 #include "src/shared/sharedmemohelper.h"
 
 
+///for test only
+#include "dataholderlocalsocket.h"
+
 DataHolderManager::DataHolderManager(QObject *parent) : QObject(parent)
 {
 
@@ -32,6 +35,50 @@ void DataHolderManager::createObjects()
 void DataHolderManager::createObjectsLater()
 {
     QTimer::singleShot(111, this, SLOT(createObjects()));
+}
+
+void DataHolderManager::append2log(QString message)
+{
+    if(verboseMode)
+        qDebug() << "DataHolderManager log " << message;
+}
+
+void DataHolderManager::reloadDataFromTheFile()
+{
+    //I need this method for test only, do not use it in production
+
+    QFile file;
+    file.setFileName("dataholder.data");
+    if(file.open(QFile::ReadOnly)){
+        const QByteArray readarr = file.readAll();
+        QJsonArray jsonarr = QJsonDocument::fromJson(readarr).array();
+
+        if(jsonarr.isEmpty()){
+            qDebug() << "DataHolderManager jsonarr.isEmpty ";
+
+        }else{
+
+            DataHolderLocalSocket *socket = new DataHolderLocalSocket(dhData, true, this);
+            socket->mtdExtNameTxt = "zbyrator-bbb2";
+
+            for(int i = 0, imax = jsonarr.size(); i < imax; i++){
+
+
+                QJsonObject json = jsonarr.at(i).toObject();
+                QVariantHash hash = json.toVariantHash();
+                hash.insert("data", json.value("data").toObject().toVariantHash());
+
+                socket->addDataFromTheFile(hash);
+
+                qDebug() << "DataHolderManager added items  " << i << hash.value("NI") << hash.value("pollCode");
+
+            }
+            socket->deleteLater();
+
+        }
+
+    }
+
 }
 
 void DataHolderManager::createSharedTableObject()
@@ -65,5 +112,22 @@ void DataHolderManager::createShareMemoryWriter()
 
 void DataHolderManager::createLocalServerObject()
 {
+//    QTimer::singleShot(2444, this, SLOT(reloadDataFromTheFile()));//for test only, do not use it in production
+
+
+    QThread *t = new QThread;
+    t->setObjectName("DataHolderLocalServer");
+    DataHolderLocalServer *localServer = new DataHolderLocalServer(dhData, verboseMode);
+    localServer->moveToThread(t);
+
+    connect(this, &DataHolderManager::killAllAndExit, localServer, &DataHolderLocalServer::kickOffLocalServer);
+    connect(localServer, SIGNAL(destroyed(QObject*)), t, SLOT(quit()));
+    connect(t, SIGNAL(finished()), t, SLOT(deleteLater()));
+
+    connect(t, SIGNAL(started()), localServer, SLOT(onThrdStarted()) );
+
+    connect(localServer, SIGNAL(append2log(QString)), this, SLOT(append2log(QString)) );
+
+    QTimer::singleShot(44, t, SLOT(start()));
 
 }

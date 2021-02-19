@@ -50,9 +50,11 @@ void DataHolderSharedObject::addRecord(quint16 pollCode, QString ni, qint64 msec
      //newer
 
 
+
+
         QWriteLocker locker(&myLock);
         DHNI2data pollCodeTable = dataTable.value(pollCode);
-        pollCodeTable.insert(ni, DHMsecRecord(ni, hash, srcname, false));
+        pollCodeTable.insert(ni, DHMsecRecord(msec, hash, srcname, false));
         dataTable.insert(pollCode, pollCodeTable);
         sayThatChanged = true;
 
@@ -73,7 +75,7 @@ void DataHolderSharedObject::addRestoredRecords(quint16 pollCode, QStringList ni
     if(pollCode == 0 )
         return;
 
-    if(ni.isEmpty() || hash.isEmpty())
+    if(nis.isEmpty() || hashs.isEmpty())
         return;
 
     DHNI2data pollCodeTable = dataTable.value(pollCode);
@@ -87,9 +89,11 @@ void DataHolderSharedObject::addRestoredRecords(quint16 pollCode, QStringList ni
             const DHMsecRecord oldrecord = pollCodeTable.value(ni);
             const qint64 msec = msecs.at(i);
             if(msec > oldrecord.msec){
-                pollCodeTable.insert(ni, DHMsecRecord(ni, hashs.at(i), srcnames.at(i), true));
+                pollCodeTable.insert(ni, DHMsecRecord(msec, hashs.at(i), srcnames.at(i), true));
                 sayThatChanged = true;
             }
+
+
 
         }
         if(sayThatChanged)
@@ -111,6 +115,7 @@ void DataHolderSharedObject::makeDataHolderTypesRegistration()
 
     }
 }
+
 
 //----------------------------------------------------------------------------
 

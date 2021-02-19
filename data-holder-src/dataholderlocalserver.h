@@ -1,15 +1,29 @@
 #ifndef DATAHOLDERLOCALSERVER_H
 #define DATAHOLDERLOCALSERVER_H
 
-#include <QObject>
+///[!] localsockets
+#include "localservers/regularlocalserver.h"
 
-class DataHolderLocalServer : public QObject
+#include "dataholdersharedobject.h"
+
+class DataHolderLocalServer : public RegularLocalServer
 {
     Q_OBJECT
 public:
-    explicit DataHolderLocalServer(QObject *parent = nullptr);
+    explicit DataHolderLocalServer(DataHolderSharedObject *dhData, const bool &verboseMode, QObject *parent = nullptr);
 
-signals:
+    DataHolderSharedObject *dhData;
+
+    QString getPath2server();
+
+
+public slots:
+    void onThrdStarted();
+
+
+
+protected:
+    void incomingConnection(quintptr socketDsk);
 
 };
 
