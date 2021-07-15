@@ -10,10 +10,12 @@
 
 //--------------------------------------------------------------------------------------
 
-DataHolderLocalServer::DataHolderLocalServer(DataHolderSharedObject *dhData, const bool &verboseMode, QObject *parent) :
+DataHolderLocalServer::DataHolderLocalServer(DataHolderSharedObject *dhDataNI, DataHolderSharedObject *dhDataSN, const bool &verboseMode, QObject *parent) :
     RegularLocalServer(verboseMode, parent)
 {
-    this->dhData = dhData;
+    this->dhDataNI = dhDataNI;
+    this->dhDataSN = dhDataSN;
+
 }
 
 //--------------------------------------------------------------------------------------
@@ -37,7 +39,7 @@ void DataHolderLocalServer::onThrdStarted()
 
 void DataHolderLocalServer::incomingConnection(quintptr socketDsk)
 {
-    DataHolderLocalSocket *socket  = new DataHolderLocalSocket(dhData, verboseMode, this);
+    DataHolderLocalSocket *socket  = new DataHolderLocalSocket(dhDataNI, dhDataSN, verboseMode, this);
     if(!socket->setSocketDescriptor(socketDsk)){
         socket->close();
         socket->deleteLater();

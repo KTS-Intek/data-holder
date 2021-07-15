@@ -83,7 +83,9 @@ void DataHolderManager::reloadDataFromTheFile()
 
 void DataHolderManager::createSharedTableObject()
 {
-    dhData = new DataHolderSharedObject(this);
+    dhDataNI = new DataHolderSharedObject(this);
+    dhDataSN = new DataHolderSharedObject(this);
+
 }
 
 void DataHolderManager::createShareMemoryWriter()

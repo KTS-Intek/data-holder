@@ -16,10 +16,9 @@ public:
 
     DHDataTable getDataTable() ;
 
-    DHNI2data getPollCodeData(const quint16 &pollCode);
+    DHDevId2data getPollCodeData(const quint16 &pollCode);
 
-    DHMsecRecord getLastRecord(const quint16 &pollCode, const QString &ni);
-
+    DHMsecRecord getLastRecord(const quint16 &pollCode, const QString &devID);
 
 
 signals:
@@ -27,9 +26,9 @@ signals:
 
 
 public slots:
-    void addRecord(quint16 pollCode, QString ni, qint64 msec, QVariantHash hash, QString srcname);
+    void addRecord(quint16 pollCode, QString devID, qint64 msec, QVariantHash hash, QString srcname);
 
-    void addRestoredRecords(quint16 pollCode, QStringList nis, QList<qint64> msecs, QList<QVariantHash> hashs, QStringList srcnames);
+    void addRestoredRecords(quint16 pollCode, QStringList devIDs, QList<qint64> msecs, QList<QVariantHash> hashs, QStringList srcnames);
 
 
 private:
@@ -39,7 +38,7 @@ private:
 
 
     QReadWriteLock myLock;
-    DHDataTable dataTable;
+    DHDataTable dataTable, dataTableSN;
 };
 
 //must be in a header file, outside the class!!!

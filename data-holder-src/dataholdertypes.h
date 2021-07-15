@@ -5,7 +5,7 @@
 
 
 //<poll code> - it must have only unique NIs
-//        <NI> - it can contain only one record
+//        <devId> - it can contain only one record (NI or SN), not empty
 //            <DT msec> <data QVH>
 
 struct DHMsecRecord
@@ -22,9 +22,9 @@ struct DHMsecRecord
 };
 
 
-typedef QHash<QString, DHMsecRecord> DHNI2data; //NI to msec and data
+typedef QHash<QString, DHMsecRecord> DHDevId2data; //devID to msec and data
 
-typedef QHash<quint16, DHNI2data> DHDataTable;//poll code to NIs with their data
+typedef QHash<quint16, DHDevId2data> DHDataTable;//poll code to devIDs with their data
 
 
 

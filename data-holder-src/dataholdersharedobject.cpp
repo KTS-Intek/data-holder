@@ -11,50 +11,47 @@ DHDataTable DataHolderSharedObject::getDataTable()
 {
 
     QReadLocker locker(&myLock);
-    const DHDataTable r = dataTable;
+    const auto r = dataTable;
     return r ;
 }
 
 //----------------------------------------------------------------------------
 
-DHNI2data DataHolderSharedObject::getPollCodeData(const quint16 &pollCode)
+DHDevId2data DataHolderSharedObject::getPollCodeData(const quint16 &pollCode)
 {
     QReadLocker locker(&myLock);
-    const DHNI2data r = dataTable.value(pollCode);
+    const auto r = dataTable.value(pollCode);
     return r ;
 }
 
 //----------------------------------------------------------------------------
 
-DHMsecRecord DataHolderSharedObject::getLastRecord(const quint16 &pollCode, const QString &ni)
+DHMsecRecord DataHolderSharedObject::getLastRecord(const quint16 &pollCode, const QString &devID)
 {
     QReadLocker locker(&myLock);
-    const DHMsecRecord r = dataTable.value(pollCode).value(ni);
+    const DHMsecRecord r = dataTable.value(pollCode).value(devID);
     return r ;
 }
 
 //----------------------------------------------------------------------------
 
-void DataHolderSharedObject::addRecord(quint16 pollCode, QString ni, qint64 msec, QVariantHash hash, QString srcname)
+void DataHolderSharedObject::addRecord(quint16 pollCode, QString devID, qint64 msec, QVariantHash hash, QString srcname)
 {
     if(pollCode == 0 )
         return;
 
-    if(ni.isEmpty() || hash.isEmpty())
+    if(devID.isEmpty() || hash.isEmpty())
         return;
 
-    const DHMsecRecord oldrecord = getLastRecord(pollCode, ni);
+    const DHMsecRecord oldrecord = getLastRecord(pollCode, devID);
 
     bool sayThatChanged = false;
     if(msec > oldrecord.msec){
      //newer
 
-
-
-
         QWriteLocker locker(&myLock);
-        DHNI2data pollCodeTable = dataTable.value(pollCode);
-        pollCodeTable.insert(ni, DHMsecRecord(msec, hash, srcname, false));
+        auto pollCodeTable = dataTable.value(pollCode);
+        pollCodeTable.insert(devID, DHMsecRecord(msec, hash, srcname, false));
         dataTable.insert(pollCode, pollCodeTable);
         sayThatChanged = true;
 
@@ -69,27 +66,27 @@ void DataHolderSharedObject::addRecord(quint16 pollCode, QString ni, qint64 msec
 //----------------------------------------------------------------------------
 
 
-void DataHolderSharedObject::addRestoredRecords(quint16 pollCode, QStringList nis, QList<qint64> msecs, QList<QVariantHash> hashs, QStringList srcnames)
+void DataHolderSharedObject::addRestoredRecords(quint16 pollCode, QStringList devIDs, QList<qint64> msecs, QList<QVariantHash> hashs, QStringList srcnames)
 {
     //use this method only for data restoring from the shared memory
     if(pollCode == 0 )
         return;
 
-    if(nis.isEmpty() || hashs.isEmpty())
+    if(devIDs.isEmpty() || hashs.isEmpty())
         return;
 
-    DHNI2data pollCodeTable = dataTable.value(pollCode);
+    DHDevId2data pollCodeTable = dataTable.value(pollCode);
     bool sayThatChanged = false;
 
-    if(!nis.isEmpty()){
+    if(!devIDs.isEmpty()){
         QWriteLocker locker(&myLock);
 
-        for(int i = 0, imax = nis.size(); i < imax; i++){
-            const QString ni = nis.at(i);
-            const DHMsecRecord oldrecord = pollCodeTable.value(ni);
+        for(int i = 0, imax = devIDs.size(); i < imax; i++){
+            const QString devID = devIDs.at(i);
+            const DHMsecRecord oldrecord = pollCodeTable.value(devID);
             const qint64 msec = msecs.at(i);
             if(msec > oldrecord.msec){
-                pollCodeTable.insert(ni, DHMsecRecord(msec, hashs.at(i), srcnames.at(i), true));
+                pollCodeTable.insert(devID, DHMsecRecord(msec, hashs.at(i), srcnames.at(i), true));
                 sayThatChanged = true;
             }
 

@@ -5,10 +5,11 @@
 
 //--------------------------------------------------------------------------------------
 
-DataHolderLocalSocket::DataHolderLocalSocket(DataHolderSharedObject *dhData, const bool &verboseMode, QObject *parent) :
+DataHolderLocalSocket::DataHolderLocalSocket(DataHolderSharedObject *dhDataNI, DataHolderSharedObject *dhDataSN, const bool &verboseMode, QObject *parent) :
     RegularServerSocket(verboseMode, parent)
 {
-    this->dhData = dhData;
+    this->dhDataNI = dhDataNI;
+    this->dhDataSN = dhDataSN;
 }
 
 //--------------------------------------------------------------------------------------
@@ -91,6 +92,10 @@ void DataHolderLocalSocket::decodeReadData(const QVariant &dataVar, const quint1
         break;}
     case DATAHOLDER_GET_POLLDATA: {
         writeHash = onDATAHOLDER_GET_POLLDATA(dataVar.toHash());
+        break;}
+
+    case DATAHOLDER_GET_POLLDATA_EXT: {
+        writeHash = onDATAHOLDER_GET_POLLDATA_EXT(dataVar.toHash());
         break;}
     }
 
@@ -200,6 +205,65 @@ QVariantHash DataHolderLocalSocket::onDATAHOLDER_GET_POLLDATA(const QVariantHash
                 QString("your data is bad, pollCode='%1', ni='%2', hasPollCode='%3', hasNI='%4'")
                 .arg(pollCode).arg(ni).arg(QString::number(hasPollCode))
                 .arg(QString::number(hasNI)), messagetag, objecttag);
+}
+
+QVariantHash DataHolderLocalSocket::onDATAHOLDER_GET_POLLDATA_EXT(const QVariantHash &hash)
+{
+    //    if(mtdExtNameTxt.isEmpty())
+    //        return getErrorMessage("you have to register first"); //it is not registered
+        const QVariant messagetag = hash.value("messagetag");
+        const QVariant objecttag = hash.value("objecttag");
+
+
+        bool hasPollCode;
+        const quint16 pollCode = hash.value("pollCode").toUInt(&hasPollCode);
+
+
+        const QStringList devIDs = hash.value("devIDs").toStringList();
+        const bool useSn4devID = hash.value("useSn4devID", false).toBool();
+
+        const bool hasDevIds = !devIDs.isEmpty();
+
+
+        if(verboseMode)
+            qDebug() << "onDATAHOLDER_GET_POLLDATA " << mtdExtNameTxt << messagetag << objecttag << pollCode << useSn4devID << devIDs ;
+
+    //    const qint64 msec = hash.value("msec").toLongLong();
+    //    const QVariantHash h = hash.value("data").toHash();
+        if(pollCode > 0){
+            QVariantList varlist;
+
+
+            if(hasDevIds){
+
+                for(int i = 0, imax = devIDs.size(); i < imax; i++){
+                    const DHMsecRecord pollCodeData = dhData->getLastRecord(pollCode, ni);
+
+                    varlist.append(getHashRecord(pollCode, ni, pollCodeData));
+                }
+
+            }else{
+                const DHNI2data pollCodeData = dhData->getPollCodeData(pollCode);
+                QList<QString> lk = pollCodeData.keys();
+                std::sort(lk.begin(), lk.end());
+
+                for(int i = 0, imax = lk.size(); i < imax; i++)
+                    varlist.append(getHashRecord(pollCode, ni, pollCodeData.value(ni)));
+
+            }
+
+
+
+            QVariantHash writehash = getOkMessage(messagetag, objecttag);
+            writehash.insert("varlist", varlist);
+
+            return writehash;
+        }
+
+        return getErrorMessage(
+                    QString("your data is bad, pollCode='%1', ni='%2', hasPollCode='%3', hasNI='%4'")
+                    .arg(pollCode).arg(ni).arg(QString::number(hasPollCode))
+                    .arg(QString::number(hasNI)), messagetag, objecttag);
 }
 
 //--------------------------------------------------------------------------------------
