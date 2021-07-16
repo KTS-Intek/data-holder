@@ -11,11 +11,10 @@ class DataHolderLocalSocket : public RegularServerSocket
 {
     Q_OBJECT
 public:
-    explicit DataHolderLocalSocket(DataHolderSharedObject *dhDataNI, DataHolderSharedObject *dhDataSN, const bool &verboseMode, QObject *parent = nullptr);
+    explicit DataHolderLocalSocket(DataHolderSharedObject *dhData, const bool &verboseMode, QObject *parent = nullptr);
 
 
-    DataHolderSharedObject *dhDataNI;//it stores data by NI
-    DataHolderSharedObject *dhDataSN;//it stores data by SN
+    DataHolderSharedObject *dhData;//it stores data by NI and SN
 
     quint16 getZombieCommand();
 
@@ -42,7 +41,7 @@ private:
 
     QVariantHash onDATAHOLDER_GET_POLLDATA_EXT(const QVariantHash &hash);
 
-    QVariantHash getHashRecord(const quint16 &pollCode, const QString &ni, const DHMsecRecord &pollCodeData);
+    QVariantHash getHashRecord(const quint16 &pollCode, const QString &devID, const bool &useSn4devID, const DHMsecRecord &pollCodeData);
 
 
     void appendData2file(const QVariantHash &hash);

@@ -10,10 +10,9 @@ class DataHolderLocalServer : public RegularLocalServer
 {
     Q_OBJECT
 public:
-    explicit DataHolderLocalServer(DataHolderSharedObject *dhDataNI, DataHolderSharedObject *dhDataSN, const bool &verboseMode, QObject *parent = nullptr);
+    explicit DataHolderLocalServer(DataHolderSharedObject *dhData, const bool &verboseMode, QObject *parent = nullptr);
 
-    DataHolderSharedObject *dhDataNI;//it stores data by NI
-    DataHolderSharedObject *dhDataSN;//it stores data by SN
+    DataHolderSharedObject *dhData;//it stores data by NI and SN
 
     QString getPath2server();
 

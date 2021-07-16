@@ -16,8 +16,24 @@ public:
 
     DataHolderSharedObject *dhData;
 
+    struct DHOneRestoredPollCodeData
+    {
+        QStringList devIDs;
+        QStringList additionalDevIDs;
+        QList<qint64> msecs;
+        QList<QVariantHash> hashs;
+        QStringList srcnames;
+        DHOneRestoredPollCodeData() {}
+    };
+
+
+    DHOneRestoredPollCodeData fromDHDevId2data(const DHDevId2data &idsData);
+
+
 signals:
-    void addRestoredRecords(quint16 pollCode, QStringList nis, QList<qint64> msecs, QList<QVariantHash> hashs);
+    void addRestoredRecordsNI(quint16 pollCode, QStringList nis, QStringList sns, QList<qint64> msecs, QList<QVariantHash> hashs, QStringList srcnames);
+
+    void addRestoredRecordsSN(quint16 pollCode, QStringList sns, QStringList nis, QList<qint64> msecs, QList<QVariantHash> hashs, QStringList srcnames);
 
 public slots:
     void onThreadStarted();
@@ -31,6 +47,9 @@ private slots:
 
     void onTableRestored(QByteArray arr);
 
+    void onTableRestoredNI(const DHDataTable &dataTableNI);
+
+    void onTableRestoredSN(const DHDataTable &dataTableSN);
 
 private:
     QByteArray getTableAsAnArray();

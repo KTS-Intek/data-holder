@@ -14,11 +14,20 @@ class DataHolderSharedObject : public QObject
 public:
     explicit DataHolderSharedObject(QObject *parent = nullptr);
 
-    DHDataTable getDataTable() ;
+    DHDataTable getDataTableNI() ;
+    DHDataTable getDataTableSN() ;
 
-    DHDevId2data getPollCodeData(const quint16 &pollCode);
+    DHDevId2data getPollCodeDataNI(const quint16 &pollCode);
 
-    DHMsecRecord getLastRecord(const quint16 &pollCode, const QString &devID);
+    DHMsecRecord getLastRecordNI(const quint16 &pollCode, const QString &devID);
+
+
+
+    DHDevId2data getPollCodeDataSN(const quint16 &pollCode);
+
+    DHMsecRecord getLastRecordSN(const quint16 &pollCode, const QString &devID);
+
+
 
 
 signals:
@@ -26,19 +35,22 @@ signals:
 
 
 public slots:
-    void addRecord(quint16 pollCode, QString devID, qint64 msec, QVariantHash hash, QString srcname);
+    void addRecord(quint16 pollCode, QString devID, QString additionalID, qint64 msec, QVariantHash hash, QString srcname);
 
-    void addRestoredRecords(quint16 pollCode, QStringList devIDs, QList<qint64> msecs, QList<QVariantHash> hashs, QStringList srcnames);
+    void addRestoredRecordsNI(quint16 pollCode, QStringList nis, QStringList sns, QList<qint64> msecs, QList<QVariantHash> hashs, QStringList srcnames);
+    void addRestoredRecordsSN(quint16 pollCode, QStringList sns, QStringList nis, QList<qint64> msecs, QList<QVariantHash> hashs, QStringList srcnames);
+
 
 
 private:
     void makeDataHolderTypesRegistration();
 
+    bool checkAddRestoredRecords(DHDevId2data &pollCodeTable, const QStringList &devIDs, const QStringList &additionalIDs, const QList<qint64> &msecs, const QList<QVariantHash> &hashs, const QStringList &srcnames);
 
 
 
     QReadWriteLock myLock;
-    DHDataTable dataTable, dataTableSN;
+    DHDataTable dataTableNI, dataTableSN;
 };
 
 //must be in a header file, outside the class!!!

@@ -16,8 +16,7 @@ public:
     ~DataHolderManager();
 
     bool verboseMode;
-    DataHolderSharedObject *dhDataNI;//it stores data by NI
-    DataHolderSharedObject *dhDataSN;//it stores data by SN
+    DataHolderSharedObject *dhData;//it stores data by NI and SN
 
 
 

@@ -11,14 +11,16 @@
 struct DHMsecRecord
 {
     qint64 msec;
+    QString additionalID;
+
     QVariantHash hash;
     QString srcname;
     bool wasRestored;
 
     DHMsecRecord() : msec(0), wasRestored(false) {}
 
-    DHMsecRecord(const qint64 &msec, const QVariantHash &hash, const QString &srcname, const bool &wasRestored)
-        : msec(msec), hash(hash), srcname(srcname), wasRestored(wasRestored) {}
+    DHMsecRecord(const qint64 &msec, const QString &additionalID, const QVariantHash &hash, const QString &srcname, const bool &wasRestored)
+        : msec(msec), additionalID(additionalID), hash(hash), srcname(srcname), wasRestored(wasRestored) {}
 };
 
 
