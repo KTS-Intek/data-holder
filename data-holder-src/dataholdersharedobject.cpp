@@ -1,5 +1,7 @@
 #include "dataholdersharedobject.h"
 
+#include "myucdevicetypes.h"
+
 DataHolderSharedObject::DataHolderSharedObject(QObject *parent) : QObject(parent)
 {
     makeDataHolderTypesRegistration();
@@ -38,7 +40,14 @@ DHDevId2data DataHolderSharedObject::getPollCodeDataNI(const quint16 &pollCode)
 DHMsecRecord DataHolderSharedObject::getLastRecordNI(const quint16 &pollCode, const QString &devID)
 {
     QReadLocker locker(&myLock);
-    const DHMsecRecord r = dataTableNI.value(pollCode).value(devID);
+    const auto r = dataTableNI.value(pollCode).value(devID);
+    return r ;
+}
+//----------------------------------------------------------------------------
+DHMsecRecordList DataHolderSharedObject::getLastRecordsNI(const quint16 &pollCode, const QString &devID)
+{
+    QReadLocker locker(&myLock);
+    const auto r = dataTableNI.value(pollCode).values(devID);
     return r ;
 }
 
@@ -56,8 +65,38 @@ DHDevId2data DataHolderSharedObject::getPollCodeDataSN(const quint16 &pollCode)
 DHMsecRecord DataHolderSharedObject::getLastRecordSN(const quint16 &pollCode, const QString &devID)
 {
     QReadLocker locker(&myLock);
-    const DHMsecRecord r = dataTableSN.value(pollCode).value(devID);
+    const auto r = dataTableSN.value(pollCode).value(devID);
     return r ;
+}
+
+DHMsecRecordList DataHolderSharedObject::getLastRecordsSN(const quint16 &pollCode, const QString &devID)
+{
+    QReadLocker locker(&myLock);
+    const auto r = dataTableSN.value(pollCode).values(devID);
+    return r ;
+}
+
+//----------------------------------------------------------------------------
+
+bool DataHolderSharedObject::isItAPulseMeterNextChannel(const qint64 &msec, const quint16 &pollCode, const QString &additionalID, const DHMsecRecord &oldrecord)
+{
+
+    if(msec == oldrecord.msec && !oldrecord.wasRestored && oldrecord.additionalID == additionalID){
+        //pulse meters have the same NI ans SN for different channels,
+
+        return isItAPulseMeterPollCode(pollCode);
+
+
+    }
+
+    return false;
+}
+
+//----------------------------------------------------------------------------
+bool DataHolderSharedObject::isItAPulseMeterPollCode(const quint16 &pollCode)
+{
+    const auto pcSimple = (pollCode%20);
+    return (pcSimple == UC_METER_PULSE);
 }
 
 //----------------------------------------------------------------------------
@@ -70,36 +109,44 @@ void DataHolderSharedObject::addRecord(quint16 pollCode, QString devID, QString 
     if(hash.isEmpty())
         return;
 
+
+
     bool sayThatChanged = false;
 
-    if(!devID.isEmpty()){
-        const DHMsecRecord oldrecord = getLastRecordNI(pollCode, devID);
 
-        if(msec > oldrecord.msec){
-         //newer
 
-            QWriteLocker locker(&myLock);
-            auto pollCodeTable = dataTableNI.value(pollCode);
-            pollCodeTable.insert(devID, DHMsecRecord(msec, additionalID, hash, srcname, false));
-            dataTableNI.insert(pollCode, pollCodeTable);
-            sayThatChanged = true;
+    if(isItAPulseMeterPollCode(pollCode)){
+        sayThatChanged = addAPulseMeterRecord(pollCode, devID, additionalID, msec, hash, srcname);
+    }else{
 
+        if(!devID.isEmpty()){
+            const DHMsecRecord oldrecord = getLastRecordNI(pollCode, devID);
+
+            if(msec > oldrecord.msec){
+                //newer
+
+                QWriteLocker locker(&myLock);
+                auto pollCodeTable = dataTableNI.value(pollCode);
+
+                pollCodeTable.insert(devID, DHMsecRecord(msec, additionalID, hash, srcname, false));
+                dataTableNI.insert(pollCode, pollCodeTable);
+                sayThatChanged = true;
+            }
         }
 
-    }
+        if(!additionalID.isEmpty()){
+            const DHMsecRecord oldrecord = getLastRecordSN(pollCode, additionalID);
 
-    if(!additionalID.isEmpty()){
-        const DHMsecRecord oldrecord = getLastRecordSN(pollCode, additionalID);
+            if(msec > oldrecord.msec){
+                //newer
 
-        if(msec > oldrecord.msec){
-         //newer
+                QWriteLocker locker(&myLock);
+                auto pollCodeTable = dataTableSN.value(pollCode);
+                pollCodeTable.insert(additionalID, DHMsecRecord(msec, devID,  hash, srcname, false));
+                dataTableSN.insert(pollCode, pollCodeTable);
+                sayThatChanged = true;
 
-            QWriteLocker locker(&myLock);
-            auto pollCodeTable = dataTableSN.value(pollCode);
-            pollCodeTable.insert(additionalID, DHMsecRecord(msec, devID,  hash, srcname, false));
-            dataTableSN.insert(pollCode, pollCodeTable);
-            sayThatChanged = true;
-
+            }
         }
 
     }
@@ -110,6 +157,10 @@ void DataHolderSharedObject::addRecord(quint16 pollCode, QString devID, QString 
 
 
 }
+
+
+//----------------------------------------------------------------------------
+
 
 void DataHolderSharedObject::addRestoredRecordsNI(quint16 pollCode, QStringList nis, QStringList sns, QList<qint64> msecs, QList<QVariantHash> hashs, QStringList srcnames)
 {
@@ -131,7 +182,7 @@ void DataHolderSharedObject::addRestoredRecordsNI(quint16 pollCode, QStringList 
     if(!nis.isEmpty()){
         QWriteLocker locker(&myLock);
 
-        if(checkAddRestoredRecords(pollCodeTableNI, nis, sns, msecs, hashs, srcnames)){
+        if(checkAddRestoredRecords(pollCodeTableNI, pollCode, nis, sns, msecs, hashs, srcnames)){
             dataTableNI.insert(pollCode, pollCodeTableNI);
             sayThatChanged = true;
         }
@@ -141,6 +192,8 @@ void DataHolderSharedObject::addRestoredRecordsNI(quint16 pollCode, QStringList 
         emit onDataTableChanged();
 
 }
+
+//----------------------------------------------------------------------------
 
 void DataHolderSharedObject::addRestoredRecordsSN(quint16 pollCode, QStringList sns, QStringList nis, QList<qint64> msecs, QList<QVariantHash> hashs, QStringList srcnames)
 {
@@ -158,7 +211,7 @@ void DataHolderSharedObject::addRestoredRecordsSN(quint16 pollCode, QStringList 
     if(!sns.isEmpty()){
         QWriteLocker locker(&myLock);
 
-        if(checkAddRestoredRecords(pollCodeTableSN, sns, nis, msecs, hashs, srcnames)){
+        if(checkAddRestoredRecords(pollCodeTableSN, pollCode, sns, nis, msecs, hashs, srcnames)){
             dataTableSN.insert(pollCode, pollCodeTableSN);
             sayThatChanged = true;
         }
@@ -166,6 +219,94 @@ void DataHolderSharedObject::addRestoredRecordsSN(quint16 pollCode, QStringList 
     }
     if(sayThatChanged)
         emit onDataTableChanged();
+}
+
+//----------------------------------------------------------------------------
+
+bool DataHolderSharedObject::addAPulseMeterRecord(const quint16 &pollCode, const QString &devID, const QString &additionalID, const qint64 &msec, const QVariantHash &hash, const QString &srcname)
+{
+    bool sayThatChanged = false;
+
+    const QString chnnl = hash.value("chnnl").toString();
+    if(chnnl.isEmpty())
+        return sayThatChanged;
+
+
+
+    if(!devID.isEmpty()){
+        DHMsecRecordList oldrecords = getLastRecordsNI(pollCode, devID);
+
+    //    QHash(("tvlu", QVariant(QString, "123"))("chnnl", QVariant(QString, "0")))
+
+         if(checkAddThisRecord(oldrecords, msec, chnnl)){
+            oldrecords.append(DHMsecRecord(msec, additionalID, hash, srcname, false));
+
+
+            QWriteLocker locker(&myLock);
+            auto pollCodeTable = dataTableNI.value(pollCode);
+
+
+            pollCodeTable.remove(devID);//if you use insertMulti, than it must be deleted,
+
+            for(int i = 0, imax = oldrecords.size(); i < imax; i++)
+                pollCodeTable.insertMulti(devID, oldrecords.at(i));
+
+
+            dataTableNI.insert(pollCode, pollCodeTable);
+            sayThatChanged = true;
+        }
+
+
+    }
+
+    if(!additionalID.isEmpty()){
+        DHMsecRecordList oldrecords = getLastRecordsSN(pollCode, additionalID);
+
+
+        if(checkAddThisRecord(oldrecords, msec, chnnl)){
+            oldrecords.append(DHMsecRecord(msec, devID, hash, srcname, false));
+
+
+            QWriteLocker locker(&myLock);
+            auto pollCodeTable = dataTableSN.value(pollCode);
+
+            pollCodeTable.remove(additionalID);//if you use insertMulti, than it must be deleted,
+
+            for(int i = 0, imax = oldrecords.size(); i < imax; i++)
+                pollCodeTable.insertMulti(additionalID, oldrecords.at(i));
+
+
+            dataTableSN.insert(pollCode, pollCodeTable);
+            sayThatChanged = true;
+        }
+
+    }
+    return sayThatChanged;
+
+}
+//----------------------------------------------------------------------------
+
+
+bool DataHolderSharedObject::checkAddThisRecord(DHMsecRecordList &oldrecords, const qint64 &msec, const QString &chnnl)
+{
+    //    QHash(("tvlu", QVariant(QString, "123"))("chnnl", QVariant(QString, "0")))
+
+    for(int i = 0, imax = oldrecords.size(); i < imax; i++){
+        //remove the same channel if this data is newer, or say that nothing has to be changed
+        const DHMsecRecord oldrecord = oldrecords.at(i);
+        const QString chnnlOld = oldrecord.hash.value("chnnl").toString();
+        if(chnnl == chnnlOld){
+            //it has found the necessary channel, so stop searching
+            if(msec > oldrecord.msec){
+                oldrecords.removeAt(i);
+                return true;
+            }
+             return false;//there is nothing to change
+
+        }
+
+    }
+    return true;//if list is empty or there is no such channel
 }
 
 //----------------------------------------------------------------------------
@@ -179,7 +320,9 @@ void DataHolderSharedObject::makeDataHolderTypesRegistration()
     }
 }
 
-bool DataHolderSharedObject::checkAddRestoredRecords(DHDevId2data &pollCodeTable, const QStringList &devIDs, const QStringList &additionalIDs, const QList<qint64> &msecs, const QList<QVariantHash> &hashs, const QStringList &srcnames)
+//----------------------------------------------------------------------------
+
+bool DataHolderSharedObject::checkAddRestoredRecords(DHDevId2data &pollCodeTable, const quint16 &pollCode, const QStringList &devIDs, const QStringList &additionalIDs, const QList<qint64> &msecs, const QList<QVariantHash> &hashs, const QStringList &srcnames)
 {
 
     bool sayThatChanged = false;
@@ -195,6 +338,11 @@ bool DataHolderSharedObject::checkAddRestoredRecords(DHDevId2data &pollCodeTable
         if(msec > oldrecord.msec){
             pollCodeTable.insert(devID, DHMsecRecord(msec, additionalIDs.at(i), hashs.at(i), srcnames.at(i), true));
             sayThatChanged = true;
+        }else{
+            if(isItAPulseMeterNextChannel(msec, pollCode, additionalIDs.at(i), oldrecord)){
+                pollCodeTable.insertMulti(devID, DHMsecRecord(msec, additionalIDs.at(i), hashs.at(i), srcnames.at(i), true));
+                sayThatChanged = true;
+            }
         }
 
     }

@@ -211,9 +211,10 @@ QVariantHash DataHolderLocalSocket::onDATAHOLDER_GET_POLLDATA_EXT(const QVariant
             for(int i = 0, imax = devIDs.size(); i < imax; i++){
                 const QString devID = devIDs.at(i);
 
-                const DHMsecRecord pollCodeData = useSn4devID ? dhData->getLastRecordSN(pollCode, devID) : dhData->getLastRecordNI(pollCode, devID);
+                const auto pollCodeDataL = useSn4devID ? dhData->getLastRecordsSN(pollCode, devID) : dhData->getLastRecordsNI(pollCode, devID);
 
-                varlist.append(getHashRecord(pollCode, devID, useSn4devID, pollCodeData));
+                for(int j = 0, jmax = pollCodeDataL.size(); j < jmax; j++)
+                    varlist.append(getHashRecord(pollCode, devID, useSn4devID, pollCodeDataL.at(j)));
             }
 
         }else{
@@ -223,7 +224,11 @@ QVariantHash DataHolderLocalSocket::onDATAHOLDER_GET_POLLDATA_EXT(const QVariant
 
             for(int i = 0, imax = lk.size(); i < imax; i++){
                 const auto devID = lk.at(i);
-                varlist.append(getHashRecord(pollCode, devID, false, pollCodeData.value(devID)));
+
+
+                const auto pollCodeDataL = pollCodeData.values(devID);
+                for(int j = 0, jmax = pollCodeDataL.size(); j < jmax; j++)
+                    varlist.append(getHashRecord(pollCode, devID, false, pollCodeDataL.at(j)));
             }
 
         }

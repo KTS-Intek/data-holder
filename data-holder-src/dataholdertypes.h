@@ -23,6 +23,7 @@ struct DHMsecRecord
         : msec(msec), additionalID(additionalID), hash(hash), srcname(srcname), wasRestored(wasRestored) {}
 };
 
+typedef QList<DHMsecRecord> DHMsecRecordList;
 
 typedef QHash<QString, DHMsecRecord> DHDevId2data; //devID to msec and data
 
