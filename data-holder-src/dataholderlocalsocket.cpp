@@ -198,7 +198,7 @@ QVariantHash DataHolderLocalSocket::onDATAHOLDER_GET_POLLDATA_EXT(const QVariant
 
 
     if(verboseMode)
-        qDebug() << "onDATAHOLDER_GET_POLLDATA_EXT " << mtdExtNameTxt << messagetag << objecttag << pollCode << useSn4devID << devIDs ;
+        qDebug() << "onDATAHOLDER_GET_POLLDATA_EXT A " << mtdExtNameTxt << messagetag << objecttag << pollCode << useSn4devID << devIDs ;
 
     //    const qint64 msec = hash.value("msec").toLongLong();
     //    const QVariantHash h = hash.value("data").toHash();
@@ -213,8 +213,22 @@ QVariantHash DataHolderLocalSocket::onDATAHOLDER_GET_POLLDATA_EXT(const QVariant
 
                 const auto pollCodeDataL = useSn4devID ? dhData->getLastRecordsSN(pollCode, devID) : dhData->getLastRecordsNI(pollCode, devID);
 
-                for(int j = 0, jmax = pollCodeDataL.size(); j < jmax; j++)
+
+                if(verboseMode){
+                    qDebug() << "onDATAHOLDER_GET_POLLDATA_EXT B " << devID << pollCodeDataL.size() ;
+                    if(pollCodeDataL.isEmpty()){
+                        const auto pollCodeData = useSn4devID ? dhData->getLastRecordSN(pollCode, devID) : dhData->getLastRecordNI(pollCode, devID);
+
+                        qDebug() << "onDATAHOLDER_GET_POLLDATA_EXT B2 " << pollCodeData.additionalID << pollCodeData.hash;
+
+                    }
+                }
+
+                for(int j = 0, jmax = pollCodeDataL.size(); j < jmax; j++){
                     varlist.append(getHashRecord(pollCode, devID, useSn4devID, pollCodeDataL.at(j)));
+                    if(verboseMode)
+                        qDebug() << "onDATAHOLDER_GET_POLLDATA_EXT C " << pollCodeDataL.at(j).hash ;
+                }
             }
 
         }else{

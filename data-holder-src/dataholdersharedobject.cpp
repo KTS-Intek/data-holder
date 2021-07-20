@@ -2,8 +2,10 @@
 
 #include "myucdevicetypes.h"
 
-DataHolderSharedObject::DataHolderSharedObject(QObject *parent) : QObject(parent)
+DataHolderSharedObject::DataHolderSharedObject(const bool &verboseMode, QObject *parent) : QObject(parent)
 {
+    this->verboseMode = verboseMode;
+
     makeDataHolderTypesRegistration();
 }
 
@@ -131,6 +133,9 @@ void DataHolderSharedObject::addRecord(quint16 pollCode, QString devID, QString 
                 pollCodeTable.insert(devID, DHMsecRecord(msec, additionalID, hash, srcname, false));
                 dataTableNI.insert(pollCode, pollCodeTable);
                 sayThatChanged = true;
+
+                if(verboseMode)
+                    qDebug() << "addRecord dataTableNI " << devID << pollCodeTable.size() ;
             }
         }
 
@@ -145,14 +150,18 @@ void DataHolderSharedObject::addRecord(quint16 pollCode, QString devID, QString 
                 pollCodeTable.insert(additionalID, DHMsecRecord(msec, devID,  hash, srcname, false));
                 dataTableSN.insert(pollCode, pollCodeTable);
                 sayThatChanged = true;
-
+                if(verboseMode)
+                    qDebug() << "addRecord dataTableSN " << additionalID << pollCodeTable.size();
             }
         }
 
     }
 
-    if(sayThatChanged)
+    if(sayThatChanged){
+        if(verboseMode)
+            qDebug() << "addRecord " << pollCode << devID << additionalID << srcname;
         emit onDataTableChanged();
+    }
 
 
 
@@ -227,6 +236,9 @@ bool DataHolderSharedObject::addAPulseMeterRecord(const quint16 &pollCode, const
 {
     bool sayThatChanged = false;
 
+    if(verboseMode)
+        qDebug() << "addAPulseMeterRecord ";
+
     const QString chnnl = hash.value("chnnl").toString();
     if(chnnl.isEmpty())
         return sayThatChanged;
@@ -254,6 +266,9 @@ bool DataHolderSharedObject::addAPulseMeterRecord(const quint16 &pollCode, const
 
             dataTableNI.insert(pollCode, pollCodeTable);
             sayThatChanged = true;
+
+            if(verboseMode)
+                qDebug() << "addAPulseMeterRecord NI " << devID;
         }
 
 
@@ -278,9 +293,15 @@ bool DataHolderSharedObject::addAPulseMeterRecord(const quint16 &pollCode, const
 
             dataTableSN.insert(pollCode, pollCodeTable);
             sayThatChanged = true;
+
+            if(verboseMode)
+                qDebug() << "addAPulseMeterRecord SN " << additionalID;
         }
 
     }
+
+
+
     return sayThatChanged;
 
 }

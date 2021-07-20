@@ -12,7 +12,9 @@ class DataHolderSharedObject : public QObject
 {
     Q_OBJECT
 public:
-    explicit DataHolderSharedObject(QObject *parent = nullptr);
+    explicit DataHolderSharedObject(const bool &verboseMode, QObject *parent = nullptr);
+
+    bool verboseMode;
 
     DHDataTable getDataTableNI() ;
     DHDataTable getDataTableSN() ;

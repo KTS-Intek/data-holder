@@ -83,7 +83,7 @@ void DataHolderManager::reloadDataFromTheFile()
 
 void DataHolderManager::createSharedTableObject()
 {
-    dhData = new DataHolderSharedObject(this);
+    dhData = new DataHolderSharedObject(verboseMode, this);
 
 }
 
