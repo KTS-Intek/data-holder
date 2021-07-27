@@ -234,11 +234,19 @@ QVariantHash DataHolderLocalSocket::onDATAHOLDER_GET_POLLDATA_EXT(const QVariant
         }else{
             const auto pollCodeData = dhData->getPollCodeDataNI(pollCode);
             QList<QString> lk = pollCodeData.keys();
+
             std::sort(lk.begin(), lk.end());
+
+            //if insertMulti is used, then be ready for keys dublication
+
+            QStringList usedkeys;
 
             for(int i = 0, imax = lk.size(); i < imax; i++){
                 const auto devID = lk.at(i);
 
+                if(usedkeys.contains(devID))
+                    continue;
+                usedkeys.append(devID);
 
                 const auto pollCodeDataL = pollCodeData.values(devID);
                 for(int j = 0, jmax = pollCodeDataL.size(); j < jmax; j++)

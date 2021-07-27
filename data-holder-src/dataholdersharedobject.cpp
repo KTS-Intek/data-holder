@@ -259,6 +259,7 @@ bool DataHolderSharedObject::addAPulseMeterRecord(const quint16 &pollCode, const
 
 
             pollCodeTable.remove(devID);//if you use insertMulti, than it must be deleted,
+            //if insertMulti is used, then be ready for keys dublication
 
             for(int i = 0, imax = oldrecords.size(); i < imax; i++)
                 pollCodeTable.insertMulti(devID, oldrecords.at(i));
