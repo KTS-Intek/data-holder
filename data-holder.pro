@@ -4,7 +4,7 @@ QT -= gui
 CONFIG += c++11 console
 CONFIG -= app_bundle
 
-TARGET = data-holderd
+TARGET = data-holder
 
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings
@@ -37,6 +37,10 @@ include(../../../Matilda-units/ipc/localsockets/localsockets.pri)
 include(../../../Matilda-units/ipc/sharedmemory/sharedmemory.pri)
 
 
+DEFINES += ENABLE_SETTLOADER4MATILDA
+
+include(../../../Matilda-units/matilda-bbb/matilda-bbb-settings/matilda-bbb-settings.pri)
+
 linux:{
     target.path = /opt/matilda/bin
     INSTALLS += target
@@ -49,6 +53,8 @@ SOURCES += \
         data-holder-src/dataholdermanager.cpp \
         data-holder-src/dataholdersharedmemoryobject.cpp \
         data-holder-src/dataholdersharedobject.cpp \
+        data-holder-src/dataholdersharedobjectprocessor.cpp \
+        data-holder-src/matildaconnectionsocket.cpp \
         main.cpp
 
 HEADERS += \
@@ -58,4 +64,6 @@ HEADERS += \
     data-holder-src/dataholdermanager.h \
     data-holder-src/dataholdersharedmemoryobject.h \
     data-holder-src/dataholdersharedobject.h \
-    data-holder-src/dataholdertypes.h
+    data-holder-src/dataholdersharedobjectprocessor.h \
+    data-holder-src/dataholdertypes.h \
+    data-holder-src/matildaconnectionsocket.h

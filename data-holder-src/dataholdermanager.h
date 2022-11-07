@@ -6,6 +6,7 @@
 
 #include "dataholdersharedmemoryobject.h"
 #include "dataholderlocalserver.h"
+#include "matildaconnectionsocket.h"
 
 class DataHolderManager : public QObject
 {
@@ -23,6 +24,13 @@ public:
 signals:
     void killAllAndExit();
 
+    void setEventManagerRules(QVariantHash hashRules);
+
+
+    void sendCommand2pollDevStr(quint16 pollCode, QString args);
+
+    void sendCommand2pollDevMap(quint16 pollCode, QVariantMap mapArgs);
+
 
 public slots:
     void saveAllYourData();
@@ -33,6 +41,9 @@ public slots:
 
     void append2log(QString message);//it adds date time automatically
 
+    void onConfigChanged(quint16 command, QVariant datavar);
+
+    void reloadAllSettings();
 
     void reloadDataFromTheFile();
 
@@ -43,6 +54,8 @@ private:
     void createShareMemoryWriter();
 
     void createLocalServerObject();
+
+    void createMatildaLocalSocket();
 
 };
 

@@ -16,6 +16,8 @@ public:
 
     QString getPath2server();
 
+signals:
+
 
 public slots:
     void onThrdStarted();

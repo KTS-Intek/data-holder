@@ -6,23 +6,41 @@
 #include "src/shared/sharedmemohelper.h"
 
 
+///[!] matilda-bbb-settings
+#include "src/matilda/settloader4matilda.h"
+#include "src/matilda/settloader4matildadefaults.h"
+
+
+
+
 ///for test only
 #include "dataholderlocalsocket.h"
+
+#include "moji_defy.h"
+
+
+//---------------------------------------------------------------------------------------
 
 DataHolderManager::DataHolderManager(QObject *parent) : QObject(parent)
 {
 
 }
 
+//---------------------------------------------------------------------------------------
+
 DataHolderManager::~DataHolderManager()
 {
    saveAllYourData();
 }
 
+//---------------------------------------------------------------------------------------
+
 void DataHolderManager::saveAllYourData()
 {
     emit killAllAndExit();
 }
+
+//---------------------------------------------------------------------------------------
 
 void DataHolderManager::createObjects()
 {
@@ -30,18 +48,55 @@ void DataHolderManager::createObjects()
     createSharedTableObject();
     createShareMemoryWriter();
     createLocalServerObject();
+    createMatildaLocalSocket();
+
+    reloadAllSettings();
 }
+
+//---------------------------------------------------------------------------------------
 
 void DataHolderManager::createObjectsLater()
 {
     QTimer::singleShot(111, this, SLOT(createObjects()));
 }
 
+//---------------------------------------------------------------------------------------
+
 void DataHolderManager::append2log(QString message)
 {
     if(verboseMode)
         qDebug() << "DataHolderManager log " << message;
 }
+
+//---------------------------------------------------------------------------------------
+
+void DataHolderManager::onConfigChanged(quint16 command, QVariant datavar)
+{
+    Q_UNUSED(datavar);
+
+    switch(command){
+    case MTD_EXT_COMMAND_RELOAD_SETT:{
+        reloadAllSettings();
+        break; }
+
+    default:{
+        if(verboseMode)
+            qDebug() << "DataHolderManager::onConfigChanged " << command << datavar;
+        break;}
+    }
+}
+
+//---------------------------------------------------------------------------------------
+
+void DataHolderManager::reloadAllSettings()
+{
+    QVariantHash hashRules = SettLoader4matilda().loadOneSett(SETT_DATAHOLDR_EVNTMNGR_RLS).toHash();
+    emit setEventManagerRules(hashRules);
+
+
+}
+
+//---------------------------------------------------------------------------------------
 
 void DataHolderManager::reloadDataFromTheFile()
 {
@@ -81,11 +136,21 @@ void DataHolderManager::reloadDataFromTheFile()
 
 }
 
+//---------------------------------------------------------------------------------------
+
 void DataHolderManager::createSharedTableObject()
 {
     dhData = new DataHolderSharedObject(verboseMode, this);
+    connect(this, &DataHolderManager::setEventManagerRules, dhData, &DataHolderSharedObject::setEventManagerRules);
+
+
+//    createDataProcessor must be called before the connections
+    connect(dhData, &DataHolderSharedObject::sendCommand2pollDevMap, this, &DataHolderManager::sendCommand2pollDevMap);
+    connect(dhData, &DataHolderSharedObject::sendCommand2pollDevStr, this, &DataHolderManager::sendCommand2pollDevStr);
 
 }
+
+//---------------------------------------------------------------------------------------
 
 void DataHolderManager::createShareMemoryWriter()
 {
@@ -111,6 +176,8 @@ void DataHolderManager::createShareMemoryWriter()
 
 }
 
+//---------------------------------------------------------------------------------------
+
 void DataHolderManager::createLocalServerObject()
 {
 //    QTimer::singleShot(2444, this, SLOT(reloadDataFromTheFile()));//for test only, do not use it in production
@@ -129,6 +196,40 @@ void DataHolderManager::createLocalServerObject()
 
     connect(localServer, SIGNAL(append2log(QString)), this, SLOT(append2log(QString)) );
 
+
     QTimer::singleShot(44, t, SLOT(start()));
 
 }
+
+//---------------------------------------------------------------------------------------
+
+void DataHolderManager::createMatildaLocalSocket()
+{
+
+
+    MatildaConnectionSocket *extSocket = new MatildaConnectionSocket(verboseMode);
+//    extSocket->activeDbgMessages = activeDbgMessages;
+
+    extSocket->initializeSocket(MTD_EXT_NAME_DATAHOLDER);
+    QThread *extSocketThrd = new QThread(this); //QT2
+    extSocketThrd->setObjectName("MatildaConnectionSocket");
+    extSocket->moveToThread(extSocketThrd);
+#ifdef ENABLE_VERBOSE_SERVER
+    connect(extSocket, &MatildaConnectionSocket::appendDbgExtData, this, &ZbyratorManager::appendDbgExtData );
+#endif
+    connect(extSocketThrd, &QThread::started, extSocket, &MatildaConnectionSocket::onThreadStarted);
+
+    connect(extSocket, &MatildaConnectionSocket::onConfigChanged , this, &DataHolderManager::onConfigChanged  );
+
+
+    connect(this, &DataHolderManager::killAllAndExit, extSocket, &MatildaConnectionSocket::killAllObjects);
+
+
+    connect(this, &DataHolderManager::sendCommand2pollDevMap, extSocket, &MatildaConnectionSocket::sendCommand2pollDevMap);
+    connect(this, &DataHolderManager::sendCommand2pollDevStr, extSocket, &MatildaConnectionSocket::sendCommand2pollDevStr);
+
+    extSocketThrd->start();
+
+}
+
+//---------------------------------------------------------------------------------------

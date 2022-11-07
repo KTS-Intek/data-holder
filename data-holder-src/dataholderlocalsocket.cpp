@@ -43,6 +43,7 @@ QVariantHash DataHolderLocalSocket::getErrorMessage(const QString &message, cons
     return h;
 }
 
+
 //--------------------------------------------------------------------------------------
 
 void DataHolderLocalSocket::configureZombieKiller()

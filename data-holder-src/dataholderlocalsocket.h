@@ -27,6 +27,8 @@ signals:
 
 
 public slots:
+
+
     void configureZombieKiller();
 
     void decodeReadData(const QVariant &dataVar, const quint16 &command);

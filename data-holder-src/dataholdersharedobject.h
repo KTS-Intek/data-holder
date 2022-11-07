@@ -6,7 +6,8 @@
 #include <QDataStream>
 #include <QReadWriteLock>
 
-#include "dataholdertypes.h"
+
+#include "dataholdersharedobjectprocessor.h"
 
 class DataHolderSharedObject : public QObject
 {
@@ -15,6 +16,8 @@ public:
     explicit DataHolderSharedObject(const bool &verboseMode, QObject *parent = nullptr);
 
     bool verboseMode;
+
+
 
     DHDataTable getDataTableNI() ;
     DHDataTable getDataTableSN() ;
@@ -40,8 +43,15 @@ public:
 signals:
     void onDataTableChanged();
 
+    void setEventManagerRules(QVariantHash hashRules);
 
+
+    void sendCommand2pollDevStr(quint16 pollCode, QString args);
+
+    void sendCommand2pollDevMap(quint16 pollCode, QVariantMap mapArgs);
 public slots:
+    void createDataProcessor();
+
     void addRecord(quint16 pollCode, QString devID, QString additionalID, qint64 msec, QVariantHash hash, QString srcname);
 
 
@@ -62,7 +72,7 @@ private:
     bool checkAddRestoredRecords(DHDevId2data &pollCodeTable, const quint16 &pollCode, const QStringList &devIDs, const QStringList &additionalIDs, const QList<qint64> &msecs, const QList<QVariantHash> &hashs, const QStringList &srcnames);
 
 
-
+    DataHolderSharedObjectProcessor *dataProcessor;
 
     QReadWriteLock myLock;
     DHDataTable dataTableNI, dataTableSN;

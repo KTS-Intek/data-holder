@@ -7,6 +7,8 @@ DataHolderSharedObject::DataHolderSharedObject(const bool &verboseMode, QObject 
     this->verboseMode = verboseMode;
 
     makeDataHolderTypesRegistration();
+
+    createDataProcessor();
 }
 
 //----------------------------------------------------------------------------
@@ -103,6 +105,18 @@ bool DataHolderSharedObject::isItAPulseMeterPollCode(const quint16 &pollCode)
 
 //----------------------------------------------------------------------------
 
+void DataHolderSharedObject::createDataProcessor()
+{
+    dataProcessor = new DataHolderSharedObjectProcessor(this);
+    dataProcessor->createLinesIterator();
+    connect(this, &DataHolderSharedObject::setEventManagerRules, dataProcessor, &DataHolderSharedObjectProcessor::setEventManagerRules);
+
+    connect(dataProcessor, &DataHolderSharedObjectProcessor::sendCommand2pollDevMap, this, &DataHolderSharedObject::sendCommand2pollDevMap);
+    connect(dataProcessor, &DataHolderSharedObjectProcessor::sendCommand2pollDevStr, this, &DataHolderSharedObject::sendCommand2pollDevStr);
+}
+
+//----------------------------------------------------------------------------
+
 void DataHolderSharedObject::addRecord(quint16 pollCode, QString devID, QString additionalID, qint64 msec, QVariantHash hash, QString srcname)
 {
     if(pollCode == 0 )
@@ -126,17 +140,26 @@ void DataHolderSharedObject::addRecord(quint16 pollCode, QString devID, QString 
 
             if(msec > oldrecord.msec){
                 //newer
+                const DHMsecRecord newrecord(msec, additionalID, hash, srcname, false);
 
-                QWriteLocker locker(&myLock);
-                auto pollCodeTable = dataTableNI.value(pollCode);
+                if(true){
+                    QWriteLocker locker(&myLock);
+                    auto pollCodeTable = dataTableNI.value(pollCode);
 
-                pollCodeTable.insert(devID, DHMsecRecord(msec, additionalID, hash, srcname, false));
-                dataTableNI.insert(pollCode, pollCodeTable);
-                sayThatChanged = true;
+                    pollCodeTable.insert(devID, newrecord);
+                    dataTableNI.insert(pollCode, pollCodeTable);
+                    sayThatChanged = true;
 
-                if(verboseMode)
-                    qDebug() << "addRecord dataTableNI " << devID << pollCodeTable.size() ;
+                    if(verboseMode)
+                        qDebug() << "addRecord dataTableNI " << devID << pollCodeTable.size() ;
+
+                }
+                dataProcessor->checkThisDevice(pollCode, devID, newrecord);
+
+
             }
+
+
         }
 
         if(!additionalID.isEmpty()){
@@ -230,6 +253,8 @@ void DataHolderSharedObject::addRestoredRecordsSN(quint16 pollCode, QStringList 
         emit onDataTableChanged();
 }
 
+
+
 //----------------------------------------------------------------------------
 
 bool DataHolderSharedObject::addAPulseMeterRecord(const quint16 &pollCode, const QString &devID, const QString &additionalID, const qint64 &msec, const QVariantHash &hash, const QString &srcname)
@@ -248,11 +273,14 @@ bool DataHolderSharedObject::addAPulseMeterRecord(const quint16 &pollCode, const
     if(!devID.isEmpty()){
         DHMsecRecordList oldrecords = getLastRecordsNI(pollCode, devID);
 
-    //    QHash(("tvlu", QVariant(QString, "123"))("chnnl", QVariant(QString, "0")))
+        //    QHash(("tvlu", QVariant(QString, "123"))("chnnl", QVariant(QString, "0")))
 
-         if(checkAddThisRecord(oldrecords, msec, chnnl)){
+        bool theLastRecordWasAdded = false;
+
+        if(checkAddThisRecord(oldrecords, msec, chnnl)){
             oldrecords.append(DHMsecRecord(msec, additionalID, hash, srcname, false));
 
+            theLastRecordWasAdded = true;
 
             QWriteLocker locker(&myLock);
             auto pollCodeTable = dataTableNI.value(pollCode);
@@ -270,6 +298,10 @@ bool DataHolderSharedObject::addAPulseMeterRecord(const quint16 &pollCode, const
 
             if(verboseMode)
                 qDebug() << "addAPulseMeterRecord NI " << devID;
+        }
+
+        if(theLastRecordWasAdded){
+            dataProcessor->checkThisDevice(pollCode, devID, oldrecords.constLast());
         }
 
 
@@ -323,7 +355,7 @@ bool DataHolderSharedObject::checkAddThisRecord(DHMsecRecordList &oldrecords, co
                 oldrecords.removeAt(i);
                 return true;
             }
-             return false;//there is nothing to change
+            return false;//there is nothing to change
 
         }
 
