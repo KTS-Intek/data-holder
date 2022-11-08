@@ -25,6 +25,9 @@ public:
 
     QStringList listRulesWithErrors;
 
+    QHash<QString, quint32> hRulesCounter;
+
+
     MyEventsRules fromHashMyEventsRules(const QVariantHash &h);
 
      QHash<QString,QString> hdataFromOneRecord(const QString &devID, const DHMsecRecord &oneRecord);
@@ -35,12 +38,26 @@ signals:
      void sendCommand2pollDevMap(quint16 pollCode, QVariantMap mapArgs);
 
 
+signals:
+     //from iterator
+    void gimmeThisDevIDData(QString devID, quint16 pollCode, QString dataKey);
+
+    void gimmeThisAdditionalDevIDData(QString devID, QString additionalDevID, quint16 pollCode, QString dataKey);
+
+    //to iterator
+    void setThisDevIDData(QString devID, quint16 pollCode, QString dataKey, QString value);
+
+    void setThisAdditionalDevIDData(QString devID, QString additionalDevID, quint16 pollCode, QString dataKey, QString value);
+
+
 public slots:
     void createLinesIterator();
 
     void setEventManagerRules(QVariantHash hashRules);
 
     void checkThisDevice(const quint16 &pollCode, const QString &devID, const DHMsecRecord &oneRecord);
+
+
 
 };
 

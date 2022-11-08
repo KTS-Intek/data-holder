@@ -29,6 +29,10 @@ MyEventsRules DataHolderSharedObjectProcessor::fromHashMyEventsRules(const QVari
     MyEventsRules out;
     const auto lk = h.keys();
 
+
+    QHash<QString, quint32> hRulesCounterL = hRulesCounter;
+    hRulesCounter.clear();//to remove missing rules
+
     for(int i = 0, imax = lk.size(); i < imax; i++){
         const QString ruleName = lk.at(i);
         const auto oneh = h.value(ruleName).toHash();
@@ -38,8 +42,15 @@ MyEventsRules DataHolderSharedObjectProcessor::fromHashMyEventsRules(const QVari
         oneRule.ruleName = ruleName;
         oneRule.ruleLine = oneh.value("r").toString();
 
+        oneRule.limitExecutions = oneh.value("cntr", 0).toUInt();
+        oneRule.disable = oneh.value("dsbl", false).toBool();
+
+        if(oneRule.disable)
+            continue;//rule is disabled, so ignore it
+
         const auto commands2execute = oneh.value("c").toStringList();
 
+        hRulesCounter.insert(oneRule.ruleLine, hRulesCounterL.value(oneRule.ruleLine, 0));
 
         for(int j = 0, jmax = commands2execute.size(); j < jmax; j++){
 
@@ -130,6 +141,18 @@ QHash<QString, QString> DataHolderSharedObjectProcessor::hdataFromOneRecord(cons
 void DataHolderSharedObjectProcessor::createLinesIterator()
 {
     iterator = new MyLinesInterpretator(verboseMode);
+
+    //from iterator
+
+    connect(iterator, &MyLinesInterpretator::gimmeThisDevIDData             , this, &DataHolderSharedObjectProcessor::gimmeThisDevIDData            );
+    connect(iterator, &MyLinesInterpretator::gimmeThisAdditionalDevIDData   , this, &DataHolderSharedObjectProcessor::gimmeThisAdditionalDevIDData  );
+
+
+   //to iterator
+    connect(this, &DataHolderSharedObjectProcessor::setThisDevIDData            , iterator, &MyLinesInterpretator::setThisDevIDData             );
+    connect(this, &DataHolderSharedObjectProcessor::setThisAdditionalDevIDData  , iterator, &MyLinesInterpretator::setThisAdditionalDevIDData   );
+
+
 }
 
 //----------------------------------------------------------------------------------------
@@ -158,11 +181,14 @@ void DataHolderSharedObjectProcessor::checkThisDevice(const quint16 &pollCode, c
 
 //    QStringList removeBrokenRules;
 
-    const auto hdata = hdataFromOneRecord(devID, oneRecord);
+    auto hdata = hdataFromOneRecord(devID, oneRecord);
 
     for(int i = 0, imax = listOneCode.size(); i < imax; i++){
         const auto oneRule = listOneCode.at(i);
 
+        auto ruleCounter = hRulesCounter.value(oneRule.ruleLine, 0) ;
+
+        hdata.insert("$counter", QString::number(ruleCounter));
 
         QStringList errorList;
         const QString out = iterator->gimmeTheFunctionResult(oneRule.ruleLine, availableMethods, hdata, errorList);
@@ -178,8 +204,20 @@ void DataHolderSharedObjectProcessor::checkThisDevice(const quint16 &pollCode, c
 
         //ok if everything is fine
 
-        if(out.toInt() == 0)
+        if(out.toInt() == 0){
+            hRulesCounter.insert(oneRule.ruleLine, 0);//reset the counter
             continue; //
+
+        }
+
+        ruleCounter++;
+
+        if(oneRule.limitExecutions > 0 && oneRule.limitExecutions < ruleCounter){
+            continue;//stop execution of the rule
+        }
+        hRulesCounter.insert(oneRule.ruleLine, ruleCounter);
+
+
 
         for(int j = 0, jmax = oneRule.commands2execute.size(); j < jmax; j++){
             auto oneLineSett = oneRule.commands2execute.at(j);
@@ -194,9 +232,17 @@ void DataHolderSharedObjectProcessor::checkThisDevice(const quint16 &pollCode, c
                         qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice " << oneLineSett.isJson << oneLineSett.line;
                     continue;
                 }
+
+                if(verboseMode)
+                    qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice send map " << oneLineSett.command << map;
+
                 emit sendCommand2pollDevMap(oneLineSett.command, map);
                 continue;
             }
+
+            if(verboseMode)
+                qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice send str " << oneLineSett.command << oneLineSett.line << oneRule.ruleName << oneRule.ruleLine;
+
             emit sendCommand2pollDevStr(oneLineSett.command, oneLineSett.line);
         }
     }

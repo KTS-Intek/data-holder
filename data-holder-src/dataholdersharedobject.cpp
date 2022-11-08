@@ -113,6 +113,17 @@ void DataHolderSharedObject::createDataProcessor()
 
     connect(dataProcessor, &DataHolderSharedObjectProcessor::sendCommand2pollDevMap, this, &DataHolderSharedObject::sendCommand2pollDevMap);
     connect(dataProcessor, &DataHolderSharedObjectProcessor::sendCommand2pollDevStr, this, &DataHolderSharedObject::sendCommand2pollDevStr);
+
+    //from iterator
+    connect(dataProcessor, &DataHolderSharedObjectProcessor::gimmeThisDevIDData             , this, &DataHolderSharedObject::gimmeThisDevIDData             );
+    connect(dataProcessor, &DataHolderSharedObjectProcessor::gimmeThisAdditionalDevIDData   , this, &DataHolderSharedObject::gimmeThisAdditionalDevIDData   );
+
+
+   //to iterator
+    connect(this, &DataHolderSharedObject::setThisDevIDData             , dataProcessor, &DataHolderSharedObjectProcessor::setThisDevIDData             );
+    connect(this, &DataHolderSharedObject::setThisAdditionalDevIDData   , dataProcessor, &DataHolderSharedObjectProcessor::setThisAdditionalDevIDData   );
+
+
 }
 
 //----------------------------------------------------------------------------
@@ -127,12 +138,11 @@ void DataHolderSharedObject::addRecord(quint16 pollCode, QString devID, QString 
 
 
 
-    bool sayThatChanged = false;
 
-
+    DHMsecRecordList outl;
 
     if(isItAPulseMeterPollCode(pollCode)){
-        sayThatChanged = addAPulseMeterRecord(pollCode, devID, additionalID, msec, hash, srcname);
+        outl = addAPulseMeterRecord(pollCode, devID, additionalID, msec, hash, srcname);
     }else{
 
         if(!devID.isEmpty()){
@@ -142,19 +152,18 @@ void DataHolderSharedObject::addRecord(quint16 pollCode, QString devID, QString 
                 //newer
                 const DHMsecRecord newrecord(msec, additionalID, hash, srcname, false);
 
-                if(true){
-                    QWriteLocker locker(&myLock);
-                    auto pollCodeTable = dataTableNI.value(pollCode);
+                outl.append(newrecord);
 
-                    pollCodeTable.insert(devID, newrecord);
-                    dataTableNI.insert(pollCode, pollCodeTable);
-                    sayThatChanged = true;
+                QWriteLocker locker(&myLock);
+                auto pollCodeTable = dataTableNI.value(pollCode);
 
-                    if(verboseMode)
-                        qDebug() << "addRecord dataTableNI " << devID << pollCodeTable.size() ;
+                pollCodeTable.insert(devID, newrecord);
+                dataTableNI.insert(pollCode, pollCodeTable);
 
-                }
-                dataProcessor->checkThisDevice(pollCode, devID, newrecord);
+                if(verboseMode)
+                    qDebug() << "addRecord dataTableNI " << devID << pollCodeTable.size() ;
+
+
 
 
             }
@@ -167,12 +176,14 @@ void DataHolderSharedObject::addRecord(quint16 pollCode, QString devID, QString 
 
             if(msec > oldrecord.msec){
                 //newer
+                const DHMsecRecord newrecord(msec, devID,  hash, srcname, false);
+                outl.append(newrecord);
 
                 QWriteLocker locker(&myLock);
                 auto pollCodeTable = dataTableSN.value(pollCode);
-                pollCodeTable.insert(additionalID, DHMsecRecord(msec, devID,  hash, srcname, false));
+                pollCodeTable.insert(additionalID, newrecord);
                 dataTableSN.insert(pollCode, pollCodeTable);
-                sayThatChanged = true;
+
                 if(verboseMode)
                     qDebug() << "addRecord dataTableSN " << additionalID << pollCodeTable.size();
             }
@@ -180,13 +191,23 @@ void DataHolderSharedObject::addRecord(quint16 pollCode, QString devID, QString 
 
     }
 
-    if(sayThatChanged){
-        if(verboseMode)
-            qDebug() << "addRecord " << pollCode << devID << additionalID << srcname;
-        emit onDataTableChanged();
+    if(outl.isEmpty())
+        return;
+
+
+
+
+    if(verboseMode)
+        qDebug() << "addRecord " << pollCode << devID << additionalID << srcname;
+    emit onDataTableChanged();
+
+
+
+    const auto oneRecord = outl.constFirst();
+
+    if(oneRecord.additionalID == additionalID){
+        dataProcessor->checkThisDevice(pollCode, devID, oneRecord);
     }
-
-
 
 }
 
@@ -253,20 +274,46 @@ void DataHolderSharedObject::addRestoredRecordsSN(quint16 pollCode, QStringList 
         emit onDataTableChanged();
 }
 
+//----------------------------------------------------------------------------
+
+void DataHolderSharedObject::gimmeThisDevIDData(QString devID, quint16 pollCode, QString dataKey)
+{
+    const auto value = getLastRecordNI(pollCode, devID).hash.value(dataKey).toString();
+
+    emit setThisDevIDData(devID, pollCode, dataKey, value);
+}
+
+//----------------------------------------------------------------------------
+
+void DataHolderSharedObject::gimmeThisAdditionalDevIDData(QString devID, QString additionalDevID, quint16 pollCode, QString dataKey)
+{
+    const auto values = getLastRecordsNI(pollCode, devID);
+
+    for(int i = 0, imax = values.size(); i < imax; i++){
+        if(values.at(i).additionalID == additionalDevID){
+            emit setThisAdditionalDevIDData(devID, additionalDevID, pollCode, dataKey, values.at(i).hash.value(dataKey).toString());
+            return;
+        }
+    }
+
+
+}
+
 
 
 //----------------------------------------------------------------------------
 
-bool DataHolderSharedObject::addAPulseMeterRecord(const quint16 &pollCode, const QString &devID, const QString &additionalID, const qint64 &msec, const QVariantHash &hash, const QString &srcname)
+DHMsecRecordList DataHolderSharedObject::addAPulseMeterRecord(const quint16 &pollCode, const QString &devID, const QString &additionalID, const qint64 &msec, const QVariantHash &hash, const QString &srcname)
 {
-    bool sayThatChanged = false;
+
+    DHMsecRecordList outl;
 
     if(verboseMode)
         qDebug() << "addAPulseMeterRecord ";
 
     const QString chnnl = hash.value("chnnl").toString();
     if(chnnl.isEmpty())
-        return sayThatChanged;
+        return outl;
 
 
 
@@ -275,12 +322,10 @@ bool DataHolderSharedObject::addAPulseMeterRecord(const quint16 &pollCode, const
 
         //    QHash(("tvlu", QVariant(QString, "123"))("chnnl", QVariant(QString, "0")))
 
-        bool theLastRecordWasAdded = false;
-
         if(checkAddThisRecord(oldrecords, msec, chnnl)){
             oldrecords.append(DHMsecRecord(msec, additionalID, hash, srcname, false));
 
-            theLastRecordWasAdded = true;
+            outl.append(oldrecords.constLast());
 
             QWriteLocker locker(&myLock);
             auto pollCodeTable = dataTableNI.value(pollCode);
@@ -294,15 +339,11 @@ bool DataHolderSharedObject::addAPulseMeterRecord(const quint16 &pollCode, const
 
 
             dataTableNI.insert(pollCode, pollCodeTable);
-            sayThatChanged = true;
 
             if(verboseMode)
                 qDebug() << "addAPulseMeterRecord NI " << devID;
         }
 
-        if(theLastRecordWasAdded){
-            dataProcessor->checkThisDevice(pollCode, devID, oldrecords.constLast());
-        }
 
 
     }
@@ -313,6 +354,7 @@ bool DataHolderSharedObject::addAPulseMeterRecord(const quint16 &pollCode, const
 
         if(checkAddThisRecord(oldrecords, msec, chnnl)){
             oldrecords.append(DHMsecRecord(msec, devID, hash, srcname, false));
+            outl.append(oldrecords.constLast());
 
 
             QWriteLocker locker(&myLock);
@@ -325,7 +367,6 @@ bool DataHolderSharedObject::addAPulseMeterRecord(const quint16 &pollCode, const
 
 
             dataTableSN.insert(pollCode, pollCodeTable);
-            sayThatChanged = true;
 
             if(verboseMode)
                 qDebug() << "addAPulseMeterRecord SN " << additionalID;
@@ -335,7 +376,7 @@ bool DataHolderSharedObject::addAPulseMeterRecord(const quint16 &pollCode, const
 
 
 
-    return sayThatChanged;
+    return outl;
 
 }
 //----------------------------------------------------------------------------

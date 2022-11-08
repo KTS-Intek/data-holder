@@ -49,6 +49,14 @@ signals:
     void sendCommand2pollDevStr(quint16 pollCode, QString args);
 
     void sendCommand2pollDevMap(quint16 pollCode, QVariantMap mapArgs);
+
+
+    //to iterator
+    void setThisDevIDData(QString devID, quint16 pollCode, QString dataKey, QString value);
+
+    void setThisAdditionalDevIDData(QString devID, QString additionalDevID, quint16 pollCode, QString dataKey, QString value);
+
+
 public slots:
     void createDataProcessor();
 
@@ -60,9 +68,15 @@ public slots:
     void addRestoredRecordsSN(quint16 pollCode, QStringList sns, QStringList nis, QList<qint64> msecs, QList<QVariantHash> hashs, QStringList srcnames);
 
 
+    //from iterator
+   void gimmeThisDevIDData(QString devID, quint16 pollCode, QString dataKey);
+
+   void gimmeThisAdditionalDevIDData(QString devID, QString additionalDevID, quint16 pollCode, QString dataKey);
+
+
 
 private:
-    bool addAPulseMeterRecord(const quint16 &pollCode, const QString &devID, const QString &additionalID, const qint64 &msec, const QVariantHash &hash, const QString &srcname);
+    DHMsecRecordList addAPulseMeterRecord(const quint16 &pollCode, const QString &devID, const QString &additionalID, const qint64 &msec, const QVariantHash &hash, const QString &srcname);
 
     bool checkAddThisRecord(DHMsecRecordList &oldrecords, const qint64 &msec, const QString &chnnl);
 
