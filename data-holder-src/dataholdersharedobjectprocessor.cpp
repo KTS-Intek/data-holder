@@ -2,7 +2,9 @@
 
 #include <QJsonDocument>
 #include <QJsonObject>
-
+#include <QDebug>
+#include <QFileInfo>
+#include <QUrl>
 
 #include "definedpollcodes.h"
 
@@ -54,7 +56,8 @@ MyEventsRules DataHolderSharedObjectProcessor::fromHashMyEventsRules(const QVari
 
         for(int j = 0, jmax = commands2execute.size(); j < jmax; j++){
 
-            const QString line = commands2execute.at(j); //<poll code><space><arguments>
+            const QString line = commands2execute.at(j); //<poll code><space><arguments> or path to script, so check both
+
             const int indxFrom = line.indexOf(" ");
 
             if(indxFrom < 0)
@@ -64,8 +67,49 @@ MyEventsRules DataHolderSharedObjectProcessor::fromHashMyEventsRules(const QVari
             oneLineSett.line = line.mid(indxFrom + 1);
             oneLineSett.command = line.left(indxFrom).toUInt();
 
-            if(oneLineSett.command < POLL_CODE_FF_READ_LAMP || oneLineSett.line.isEmpty())
+
+            //arguments are necessary
+            if(oneLineSett.line.isEmpty())
                 continue;
+
+
+            if(oneLineSett.command < POLL_CODE_FF_READ_LAMP ){
+                const QString path2script = line.left(indxFrom);
+
+                const QFileInfo fi(path2script);
+                if(fi.exists() && fi.isExecutable()){
+                    QJsonObject json;
+                    json.insert("__path", path2script);
+                    json.insert("__message",oneLineSett.line );
+
+
+                    oneLineSett.line = QJsonDocument(json).toJson(QJsonDocument::Compact);
+
+                    oneLineSett.isJson = true;
+                    oneLineSett.command = 0xFFFF;//send message
+
+                    oneRule.commands2execute.append(oneLineSett);
+
+
+
+
+                    if(verboseMode){
+                        qDebug() << "fromHashMyEventsRules script is found " << path2script <<  line.mid(indxFrom + 1);
+
+//                        const QUrl url(line.mid(indxFrom + 1));
+//                        const QString strArgs = url.toEncoded();
+
+                        qDebug() << "fromHashMyEventsRules script is found " << QUrl::toPercentEncoding(line.mid(indxFrom + 1));
+
+                    }
+
+                }
+
+
+                continue;
+
+            }
+
 
             if(oneLineSett.line.contains("{") && oneLineSett.line.contains("}") && oneLineSett.line.contains(":")){
                 const QJsonDocument jdoc = QJsonDocument::fromJson(oneLineSett.line.toUtf8());
@@ -188,7 +232,7 @@ void DataHolderSharedObjectProcessor::checkThisDevice(const quint16 &pollCode, c
 
         auto ruleCounter = hRulesCounter.value(oneRule.ruleLine, 0) ;
 
-        hdata.insert("$counter", QString::number(ruleCounter));
+        hdata.insert("counter", QString::number(ruleCounter));
 
         QStringList errorList;
         const QString out = iterator->gimmeTheFunctionResult(oneRule.ruleLine, availableMethods, hdata, errorList);

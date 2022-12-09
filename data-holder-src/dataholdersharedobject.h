@@ -80,6 +80,7 @@ private:
 
     bool checkAddThisRecord(DHMsecRecordList &oldrecords, const qint64 &msec, const QString &chnnl);
 
+    bool checkAddThisRecordMeters(DHMsecRecordList &oldrecords, const qint64 &msec, const QString &additionalID);
 
     void makeDataHolderTypesRegistration();
 

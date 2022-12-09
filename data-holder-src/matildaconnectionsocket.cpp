@@ -1,4 +1,6 @@
 #include "matildaconnectionsocket.h"
+#include <QUrl>
+
 #include "moji_defy.h"
 #include "dbgaboutsourcetype.h"
 
@@ -79,6 +81,35 @@ void MatildaConnectionSocket::sendCommand2pollDevStr(quint16 pollCode, QString a
 
 void MatildaConnectionSocket::sendCommand2pollDevMap(quint16 pollCode, QVariantMap mapArgs)
 {
+
+
+    if(verboseMode)
+        qDebug() << "sendCommand2pollDevMap pollCode" << pollCode  << mapArgs;
+
+
+    if(pollCode == 0xFFFF){
+        //script mode
+
+//        const QUrl url(mapArgs.value("__message").toString());
+        const QString strArgs = QUrl::toPercentEncoding(mapArgs.value("__message").toString());
+//        qDebug() <<  str << str.toHtmlEscaped() << url.toEncoded() ;
+
+//        QUrl url;
+
+        if(strArgs.isEmpty()){
+            if(verboseMode)
+                qDebug() << "sendCommand2pollDevMap strArgs.isEmpty"  << mapArgs ;
+            return;
+        }
+
+        const bool r = QProcess::startDetached(mapArgs.value("__path").toString(), strArgs.split("\r\n"));
+
+        if(verboseMode)
+            qDebug() << "sendCommand2pollDevMap " << r << mapArgs <<  strArgs;
+
+        return;
+    }
+
 
     QVariantHash pollargs;
     pollargs.insert("c", int(pollCode));

@@ -107,7 +107,7 @@ bool DataHolderSharedObject::isItAPulseMeterPollCode(const quint16 &pollCode)
 
 void DataHolderSharedObject::createDataProcessor()
 {
-    dataProcessor = new DataHolderSharedObjectProcessor(this);
+    dataProcessor = new DataHolderSharedObjectProcessor(verboseMode, this);
     dataProcessor->createLinesIterator();
     connect(this, &DataHolderSharedObject::setEventManagerRules, dataProcessor, &DataHolderSharedObjectProcessor::setEventManagerRules);
 
@@ -146,27 +146,53 @@ void DataHolderSharedObject::addRecord(quint16 pollCode, QString devID, QString 
     }else{
 
         if(!devID.isEmpty()){
-            const DHMsecRecord oldrecord = getLastRecordNI(pollCode, devID);
 
-            if(msec > oldrecord.msec){
-                //newer
-                const DHMsecRecord newrecord(msec, additionalID, hash, srcname, false);
+            DHMsecRecordList oldrecords = getLastRecordsNI(pollCode, devID);
 
-                outl.append(newrecord);
+            if(checkAddThisRecordMeters(oldrecords, msec, additionalID)){
+                oldrecords.append(DHMsecRecord(msec, additionalID, hash, srcname, false));
+                outl.append(oldrecords.constLast());
+
 
                 QWriteLocker locker(&myLock);
                 auto pollCodeTable = dataTableNI.value(pollCode);
 
-                pollCodeTable.insert(devID, newrecord);
+
+                pollCodeTable.remove(devID);//if you use insertMulti, than it must be deleted,
+                //if insertMulti is used, then be ready for keys dublication
+
+                for(int i = 0, imax = oldrecords.size(); i < imax; i++)
+                    pollCodeTable.insertMulti(devID, oldrecords.at(i));
+
+
                 dataTableNI.insert(pollCode, pollCodeTable);
 
                 if(verboseMode)
-                    qDebug() << "addRecord dataTableNI " << devID << pollCodeTable.size() ;
-
-
-
+                    qDebug() << "addRecord dataTableNI NI " << devID;
 
             }
+
+//            const DHMsecRecord oldrecord = getLastRecordNI(pollCode, devID);
+//this doesn't work properly with virtual meters
+//            if(msec > oldrecord.msec){
+//                //newer
+//                const DHMsecRecord newrecord(msec, additionalID, hash, srcname, false);
+
+//                outl.append(newrecord);
+
+//                QWriteLocker locker(&myLock);
+//                auto pollCodeTable = dataTableNI.value(pollCode);
+
+//                pollCodeTable.insert(devID, newrecord);
+//                dataTableNI.insert(pollCode, pollCodeTable);
+
+//                if(verboseMode)
+//                    qDebug() << "addRecord dataTableNI " << devID << pollCodeTable.size() ;
+
+
+
+
+//            }
 
 
         }
@@ -391,6 +417,28 @@ bool DataHolderSharedObject::checkAddThisRecord(DHMsecRecordList &oldrecords, co
         const DHMsecRecord oldrecord = oldrecords.at(i);
         const QString chnnlOld = oldrecord.hash.value("chnnl").toString();
         if(chnnl == chnnlOld){
+            //it has found the necessary channel, so stop searching
+            if(msec > oldrecord.msec){
+                oldrecords.removeAt(i);
+                return true;
+            }
+            return false;//there is nothing to change
+
+        }
+
+    }
+    return true;//if list is empty or there is no such channel
+}
+
+//----------------------------------------------------------------------------
+
+bool DataHolderSharedObject::checkAddThisRecordMeters(DHMsecRecordList &oldrecords, const qint64 &msec, const QString &additionalID)
+{
+    for(int i = 0, imax = oldrecords.size(); i < imax; i++){
+        //remove the same channel if this data is newer, or say that nothing has to be changed
+        const DHMsecRecord oldrecord = oldrecords.at(i);
+
+        if(additionalID == oldrecord.additionalID){
             //it has found the necessary channel, so stop searching
             if(msec > oldrecord.msec){
                 oldrecords.removeAt(i);
