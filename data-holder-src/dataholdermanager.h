@@ -31,6 +31,9 @@ signals:
 
     void sendCommand2pollDevMap(quint16 pollCode, QVariantMap mapArgs);
 
+    void onThisCommandFailed(QString ruleNameId, QString counterId);
+
+    void add2systemLogEvent(QString evnt);
 
 public slots:
     void saveAllYourData();
@@ -48,6 +51,8 @@ public slots:
     void reloadDataFromTheFile();
 
 private:
+
+    void createShareMemoryWriterAppLogs();
 
     void createSharedTableObject();
 

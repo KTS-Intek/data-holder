@@ -25,7 +25,7 @@ DEFINES += "MYAPPOWNER=\"\\\"KTS-Intek Ltd\\\"\""
 DEFINES += "MYAPPOWNERSITE=\"\\\"http://kts-intek.com\\\"\""
 
 
-DEFINES += DISABLE_RUN_PROCESS
+#DEFINES += DISABLE_RUN_PROCESS
 
 #include(../../Matilda-units/ipc/localsockets/localsockets.pri)
 
@@ -48,6 +48,7 @@ linux:{
 
 
 SOURCES += \
+        data-holder-src/dataholderapplogs.cpp \
         data-holder-src/dataholderlocalserver.cpp \
         data-holder-src/dataholderlocalsocket.cpp \
         data-holder-src/dataholdermanager.cpp \
@@ -58,6 +59,7 @@ SOURCES += \
         main.cpp
 
 HEADERS += \
+    data-holder-src/dataholderapplogs.h \
     data-holder-src/dataholderlocalserver.h \
     data-holder-src/dataholderlocalservercommands.h \
     data-holder-src/dataholderlocalsocket.h \

@@ -50,12 +50,16 @@ signals:
 
     void sendCommand2pollDevMap(quint16 pollCode, QVariantMap mapArgs);
 
+    void onThisCommandFailed(QString ruleNameId, QString counterId);
+
 
     //to iterator
     void setThisDevIDData(QString devID, quint16 pollCode, QString dataKey, QString value);
 
     void setThisAdditionalDevIDData(QString devID, QString additionalDevID, quint16 pollCode, QString dataKey, QString value);
 
+
+    void append2log(QString message);
 
 public slots:
     void createDataProcessor();

@@ -114,6 +114,8 @@ void DataHolderSharedObject::createDataProcessor()
     connect(dataProcessor, &DataHolderSharedObjectProcessor::sendCommand2pollDevMap, this, &DataHolderSharedObject::sendCommand2pollDevMap);
     connect(dataProcessor, &DataHolderSharedObjectProcessor::sendCommand2pollDevStr, this, &DataHolderSharedObject::sendCommand2pollDevStr);
 
+    connect(this, &DataHolderSharedObject::onThisCommandFailed, dataProcessor, &DataHolderSharedObjectProcessor::onThisCommandFailed);
+
     //from iterator
     connect(dataProcessor, &DataHolderSharedObjectProcessor::gimmeThisDevIDData             , this, &DataHolderSharedObject::gimmeThisDevIDData             );
     connect(dataProcessor, &DataHolderSharedObjectProcessor::gimmeThisAdditionalDevIDData   , this, &DataHolderSharedObject::gimmeThisAdditionalDevIDData   );
@@ -123,6 +125,7 @@ void DataHolderSharedObject::createDataProcessor()
     connect(this, &DataHolderSharedObject::setThisDevIDData             , dataProcessor, &DataHolderSharedObjectProcessor::setThisDevIDData             );
     connect(this, &DataHolderSharedObject::setThisAdditionalDevIDData   , dataProcessor, &DataHolderSharedObjectProcessor::setThisAdditionalDevIDData   );
 
+    connect(dataProcessor, &DataHolderSharedObjectProcessor::append2log, this, &DataHolderSharedObject::append2log);
 
 }
 

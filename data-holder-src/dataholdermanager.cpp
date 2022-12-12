@@ -6,12 +6,16 @@
 #include "src/shared/sharedmemohelper.h"
 
 
+///[!] MatildaIO
+#include "matilda-bbb-src/shared/pathsresolver.h"
+
+
 ///[!] matilda-bbb-settings
 #include "src/matilda/settloader4matilda.h"
 #include "src/matilda/settloader4matildadefaults.h"
 
 
-
+#include "dataholderapplogs.h"
 
 ///for test only
 #include "dataholderlocalsocket.h"
@@ -45,6 +49,7 @@ void DataHolderManager::saveAllYourData()
 void DataHolderManager::createObjects()
 {
     verboseMode = qApp->arguments().contains("-vv");
+    createShareMemoryWriterAppLogs(); //it must be the first
     createSharedTableObject();
     createShareMemoryWriter();
     createLocalServerObject();
@@ -64,6 +69,7 @@ void DataHolderManager::createObjectsLater()
 
 void DataHolderManager::append2log(QString message)
 {
+    emit add2systemLogEvent(message);
     if(verboseMode)
         qDebug() << "DataHolderManager log " << message;
 }
@@ -90,6 +96,7 @@ void DataHolderManager::onConfigChanged(quint16 command, QVariant datavar)
 
 void DataHolderManager::reloadAllSettings()
 {
+    append2log(tr("Reload settings"));
     QVariantHash hashRules = SettLoader4matilda().loadOneSett(SETT_DATAHOLDR_EVNTMNGR_RLS).toHash();
     emit setEventManagerRules(hashRules);
 
@@ -102,6 +109,7 @@ void DataHolderManager::reloadDataFromTheFile()
 {
     //I need this method for test only, do not use it in production
 
+    append2log(tr("Reloading data from file, test feature, do not use it in production"));
     QFile file;
     file.setFileName("dataholder.data");
     if(file.open(QFile::ReadOnly)){
@@ -137,6 +145,41 @@ void DataHolderManager::reloadDataFromTheFile()
 
 //---------------------------------------------------------------------------------------
 
+void DataHolderManager::createShareMemoryWriterAppLogs()
+{
+    QThread *writerthred = new QThread;
+    writerthred->setObjectName("DHAppLogs");
+
+    DataHolderAppLogs *writer = new DataHolderAppLogs(
+                SharedMemoHelper::defDataHolderAppLogMemoName(),
+                SharedMemoHelper::defDataHolderAppLogSemaName(),
+                PathsResolver::path2config() + "/tmp/data-holderapp.log", 2222, 60000, verboseMode);
+
+
+//    PathsResolver::path2configTmp()
+    writer->mymaximums.write2ram = 120;
+    writer->mymaximums.write2file = 250;
+
+    writer->moveToThread(writerthred);
+    connect(writer, SIGNAL(destroyed(QObject*)), writerthred, SLOT(quit()));
+    connect(writerthred, SIGNAL(finished()), writerthred, SLOT(deleteLater()));
+    connect(writerthred, SIGNAL(started()), writer, SLOT(initObjectLtr()));
+
+    connect(this, &DataHolderManager::killAllAndExit, writer, &SharedMemoWriter::flushAllNowAndDie);
+
+//    connect(this, &HTTPResourceManager::add2systemLogError, writer, &DataHolderAppLogs::add2systemLogError);
+    connect(this, &DataHolderManager::add2systemLogEvent, writer, &DataHolderAppLogs::add2systemLogEvent);
+//    connect(this, &HTTPResourceManager::add2systemLogWarn , writer, &DataHolderAppLogs::add2systemLogWarn);
+
+//    connect(this, SIGNAL(goGoGo()), writerthred, SLOT(start()));
+
+
+    writerthred->start();
+//    return writer;
+}
+
+//---------------------------------------------------------------------------------------
+
 void DataHolderManager::createSharedTableObject()
 {
     dhData = new DataHolderSharedObject(verboseMode, this);
@@ -147,12 +190,17 @@ void DataHolderManager::createSharedTableObject()
     connect(dhData, &DataHolderSharedObject::sendCommand2pollDevMap, this, &DataHolderManager::sendCommand2pollDevMap);
     connect(dhData, &DataHolderSharedObject::sendCommand2pollDevStr, this, &DataHolderManager::sendCommand2pollDevStr);
 
+    connect(this, &DataHolderManager::onThisCommandFailed, dhData, &DataHolderSharedObject::onThisCommandFailed);
+
+
+    connect(dhData, &DataHolderSharedObject::append2log, this, &DataHolderManager::append2log);
 }
 
 //---------------------------------------------------------------------------------------
 
 void DataHolderManager::createShareMemoryWriter()
 {
+    //it is data table
     QThread *shmemwriterThread = new QThread;
     shmemwriterThread->setObjectName("DataHolderSharedMemoryObject");
 
@@ -226,6 +274,11 @@ void DataHolderManager::createMatildaLocalSocket()
 
     connect(this, &DataHolderManager::sendCommand2pollDevMap, extSocket, &MatildaConnectionSocket::sendCommand2pollDevMap);
     connect(this, &DataHolderManager::sendCommand2pollDevStr, extSocket, &MatildaConnectionSocket::sendCommand2pollDevStr);
+
+    connect(extSocket, &MatildaConnectionSocket::onThisCommandFailed , this, &DataHolderManager::onThisCommandFailed  );
+
+    connect(extSocket, &MatildaConnectionSocket::append2log, this, &DataHolderManager::append2log);
+
 
     extSocketThrd->start();
 

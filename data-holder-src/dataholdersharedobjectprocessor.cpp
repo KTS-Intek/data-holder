@@ -32,7 +32,7 @@ MyEventsRules DataHolderSharedObjectProcessor::fromHashMyEventsRules(const QVari
     const auto lk = h.keys();
 
 
-    QHash<QString, quint32> hRulesCounterL = hRulesCounter;
+   auto hRulesCounterL = hRulesCounter;
     hRulesCounter.clear();//to remove missing rules
 
     for(int i = 0, imax = lk.size(); i < imax; i++){
@@ -52,7 +52,8 @@ MyEventsRules DataHolderSharedObjectProcessor::fromHashMyEventsRules(const QVari
 
         const auto commands2execute = oneh.value("c").toStringList();
 
-        hRulesCounter.insert(oneRule.ruleLine, hRulesCounterL.value(oneRule.ruleLine, 0));
+        if(hRulesCounterL.contains(getHRulesCounterKey(oneRule)))
+            hRulesCounter.insert(getHRulesCounterKey(oneRule), hRulesCounterL.value(getHRulesCounterKey(oneRule)));
 
         for(int j = 0, jmax = commands2execute.size(); j < jmax; j++){
 
@@ -176,7 +177,15 @@ QHash<QString, QString> DataHolderSharedObjectProcessor::hdataFromOneRecord(cons
 
 //        DHMsecRecord(const qint64 &msec, const QString &additionalID, const QVariantHash &hash, const QString &srcname, const bool &wasRestored)
 //            : msec(msec), additionalID(additionalID), hash(hash), srcname(srcname), wasRestored(wasRestored) {}
-//    };
+    //    };
+}
+
+//----------------------------------------------------------------------------------------
+
+QString DataHolderSharedObjectProcessor::getHRulesCounterKey(const MyRuleSettings &ruleSett)
+{
+    return QString("%1\n\n\n%2").arg(ruleSett.ruleName).arg(ruleSett.ruleLine);
+
 }
 
 //----------------------------------------------------------------------------------------
@@ -229,8 +238,13 @@ void DataHolderSharedObjectProcessor::checkThisDevice(const quint16 &pollCode, c
 
     for(int i = 0, imax = listOneCode.size(); i < imax; i++){
         const auto oneRule = listOneCode.at(i);
+        const QString ruleNameLineKey = getHRulesCounterKey(oneRule);
 
-        auto ruleCounter = hRulesCounter.value(oneRule.ruleLine, 0) ;
+        auto ruleCounterHash = hRulesCounter.value(ruleNameLineKey) ;
+        const QString ruleCounterKey = QString("%1\n%2\n%3").arg(int(pollCode)).arg(devID).arg(oneRecord.additionalID);
+
+
+        auto ruleCounter = ruleCounterHash.value(ruleCounterKey, 0);
 
         hdata.insert("counter", QString::number(ruleCounter));
 
@@ -241,6 +255,8 @@ void DataHolderSharedObjectProcessor::checkThisDevice(const quint16 &pollCode, c
             if(verboseMode)
                 qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice " << out << errorList << oneRule.ruleLine;
 //            removeBrokenRules.append(oneRule.ruleLine);
+
+            emit append2log(tr("Bad rule %1, %2, %3").arg(oneRule.ruleName).arg(oneRule.ruleLine).arg(errorList.join("\n").left(800)));
             continue;
         }
 
@@ -249,7 +265,16 @@ void DataHolderSharedObjectProcessor::checkThisDevice(const quint16 &pollCode, c
         //ok if everything is fine
 
         if(out.toInt() == 0){
-            hRulesCounter.insert(oneRule.ruleLine, 0);//reset the counter
+            if(verboseMode)
+                qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice ruleCounter reset" << ruleCounter << oneRule.limitExecutions << oneRule.ruleLine << oneRule.ruleName << ruleCounterKey;
+
+            if(ruleCounterHash.value(ruleCounterKey, 0) > 0){
+                emit append2log(tr("rule reset counter %1, %2").arg(oneRule.ruleName).arg(ruleCounter));
+
+                ruleCounterHash.insert(ruleCounterKey, 0);
+                hRulesCounter.insert(ruleNameLineKey, ruleCounterHash);//reset the counter
+            }
+
             continue; //
 
         }
@@ -259,9 +284,15 @@ void DataHolderSharedObjectProcessor::checkThisDevice(const quint16 &pollCode, c
         if(oneRule.limitExecutions > 0 && oneRule.limitExecutions < ruleCounter){
             continue;//stop execution of the rule
         }
-        hRulesCounter.insert(oneRule.ruleLine, ruleCounter);
+        ruleCounterHash.insert(ruleCounterKey, ruleCounter);
+
+        hRulesCounter.insert(ruleNameLineKey, ruleCounterHash);
+
+        emit append2log(tr("rule accepted counter %1, %2").arg(oneRule.ruleName).arg(ruleCounter));
 
 
+        if(verboseMode)
+            qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice ruleCounter" << ruleCounter << oneRule.limitExecutions << oneRule.ruleLine << oneRule.ruleName << ruleCounterKey;
 
         for(int j = 0, jmax = oneRule.commands2execute.size(); j < jmax; j++){
             auto oneLineSett = oneRule.commands2execute.at(j);
@@ -280,6 +311,10 @@ void DataHolderSharedObjectProcessor::checkThisDevice(const quint16 &pollCode, c
                 if(verboseMode)
                     qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice send map " << oneLineSett.command << map;
 
+                map.insert("__ruleNameId", ruleNameLineKey);
+                map.insert("__counterId", ruleCounterKey);
+                //        emit onThisCommandFailed(mapArgs.value("__ruleNameId").toString(), mapArgs.value("__counterId").toString());
+
                 emit sendCommand2pollDevMap(oneLineSett.command, map);
                 continue;
             }
@@ -289,6 +324,33 @@ void DataHolderSharedObjectProcessor::checkThisDevice(const quint16 &pollCode, c
 
             emit sendCommand2pollDevStr(oneLineSett.command, oneLineSett.line);
         }
+    }
+
+
+}
+
+//----------------------------------------------------------------------------------------
+
+void DataHolderSharedObjectProcessor::onThisCommandFailed(QString ruleNameId, QString counterId)
+{
+//    const QString ruleNameLineKey = getHRulesCounterKey(oneRule);
+
+    auto ruleCounterHash = hRulesCounter.value(ruleNameId) ;
+//    const QString ruleCounterKey = QString("%1\n%2\n%3").arg(int(pollCode)).arg(devID).arg(oneRecord.additionalID);
+
+
+    auto ruleCounter = ruleCounterHash.value(counterId, 0);
+
+
+    if(verboseMode)
+        qDebug() << "DataHolderSharedObjectProcessor::onThisCommandFailed " << ruleNameId << counterId << ruleCounter;
+
+
+
+    if(ruleCounter > 0){
+        ruleCounter--;
+        ruleCounterHash.insert(counterId, ruleCounter);
+        hRulesCounter.insert(ruleNameId, ruleCounterHash);
     }
 
 

@@ -25,18 +25,21 @@ public:
 
     QStringList listRulesWithErrors;
 
-    QHash<QString, quint32> hRulesCounter;
+    QHash<QString, QHash<QString, quint32> > hRulesCounter; //<ruleName>\n<ruleLine>  to <devId> <counter>
 
 
     MyEventsRules fromHashMyEventsRules(const QVariantHash &h);
 
      QHash<QString,QString> hdataFromOneRecord(const QString &devID, const DHMsecRecord &oneRecord);
 
+     QString getHRulesCounterKey(const MyRuleSettings &ruleSett);
+
 signals:
      void sendCommand2pollDevStr(quint16 pollCode, QString args);
 
      void sendCommand2pollDevMap(quint16 pollCode, QVariantMap mapArgs);
 
+     void append2log(QString message);
 
 signals:
      //from iterator
@@ -58,6 +61,7 @@ public slots:
     void checkThisDevice(const quint16 &pollCode, const QString &devID, const DHMsecRecord &oneRecord);
 
 
+    void onThisCommandFailed(QString ruleNameId, QString counterId);
 
 };
 
