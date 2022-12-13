@@ -54,6 +54,7 @@ void DataHolderManager::createObjects()
     createShareMemoryWriter();
     createLocalServerObject();
     createMatildaLocalSocket();
+    createMessageSender();
 
     reloadAllSettings();
 }
@@ -187,8 +188,9 @@ void DataHolderManager::createSharedTableObject()
 
 
 //    createDataProcessor must be called before the connections
-    connect(dhData, &DataHolderSharedObject::sendCommand2pollDevMap, this, &DataHolderManager::sendCommand2pollDevMap);
-    connect(dhData, &DataHolderSharedObject::sendCommand2pollDevStr, this, &DataHolderManager::sendCommand2pollDevStr);
+    connect(dhData, &DataHolderSharedObject::sendCommand2pollDevMap , this, &DataHolderManager::sendCommand2pollDevMap);
+    connect(dhData, &DataHolderSharedObject::sendCommand2pollDevStr , this, &DataHolderManager::sendCommand2pollDevStr);
+    connect(dhData, &DataHolderSharedObject::sendAMessageDevMap     , this, &DataHolderManager::sendAMessageDevMap);
 
     connect(this, &DataHolderManager::onThisCommandFailed, dhData, &DataHolderSharedObject::onThisCommandFailed);
 
@@ -275,12 +277,35 @@ void DataHolderManager::createMatildaLocalSocket()
     connect(this, &DataHolderManager::sendCommand2pollDevMap, extSocket, &MatildaConnectionSocket::sendCommand2pollDevMap);
     connect(this, &DataHolderManager::sendCommand2pollDevStr, extSocket, &MatildaConnectionSocket::sendCommand2pollDevStr);
 
-    connect(extSocket, &MatildaConnectionSocket::onThisCommandFailed , this, &DataHolderManager::onThisCommandFailed  );
 
     connect(extSocket, &MatildaConnectionSocket::append2log, this, &DataHolderManager::append2log);
 
 
     extSocketThrd->start();
+
+}
+
+//---------------------------------------------------------------------------------------
+
+void DataHolderManager::createMessageSender()
+{
+    DataHolderMessageSender *messanger = new DataHolderMessageSender(verboseMode);
+    QThread *t = new QThread;
+    t->setObjectName("DHMessanger");
+    messanger->moveToThread(t);
+
+    connect(t, SIGNAL(started()), messanger, SLOT(onThreadStarted()) );
+    connect(messanger, SIGNAL(destroyed(QObject*)), t, SLOT(quit()));
+    connect(t, SIGNAL(finished()), t, SLOT(deleteLater()));
+
+    connect(messanger, &DataHolderMessageSender::append2log         , this, &DataHolderManager::append2log          );
+    connect(messanger, &DataHolderMessageSender::onThisCommandFailed, this, &DataHolderManager::onThisCommandFailed );
+
+    connect(this, &DataHolderManager::sendAMessageDevMap    , messanger, &DataHolderMessageSender::sendAMessageDevMap);
+
+//    connect(messanger, &DataHolderMessageSender::smartPingTheseHosts)
+
+    t->start();
 
 }
 

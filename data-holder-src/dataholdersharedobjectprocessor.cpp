@@ -29,7 +29,9 @@ MyEventsRules DataHolderSharedObjectProcessor::fromHashMyEventsRules(const QVari
     //    h.insert(ruleName, oneh);
 
     MyEventsRules out;
-    const auto lk = h.keys();
+    auto lk = h.keys();
+
+    std::sort(lk.begin(), lk.end());
 
 
    auto hRulesCounterL = hRulesCounter;
@@ -315,7 +317,11 @@ void DataHolderSharedObjectProcessor::checkThisDevice(const quint16 &pollCode, c
                 map.insert("__counterId", ruleCounterKey);
                 //        emit onThisCommandFailed(mapArgs.value("__ruleNameId").toString(), mapArgs.value("__counterId").toString());
 
-                emit sendCommand2pollDevMap(oneLineSett.command, map);
+                if(oneLineSett.command == 0xFFFF)
+                    emit sendAMessageDevMap(map, "telegram");
+                else
+                    emit sendCommand2pollDevMap(oneLineSett.command, map);
+
                 continue;
             }
 

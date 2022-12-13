@@ -50,6 +50,9 @@ signals:
 
     void sendCommand2pollDevMap(quint16 pollCode, QVariantMap mapArgs);
 
+    void sendAMessageDevMap(QVariantMap mapArgs, QString messageClientName);
+
+
     void onThisCommandFailed(QString ruleNameId, QString counterId);
 
 

@@ -111,8 +111,9 @@ void DataHolderSharedObject::createDataProcessor()
     dataProcessor->createLinesIterator();
     connect(this, &DataHolderSharedObject::setEventManagerRules, dataProcessor, &DataHolderSharedObjectProcessor::setEventManagerRules);
 
-    connect(dataProcessor, &DataHolderSharedObjectProcessor::sendCommand2pollDevMap, this, &DataHolderSharedObject::sendCommand2pollDevMap);
-    connect(dataProcessor, &DataHolderSharedObjectProcessor::sendCommand2pollDevStr, this, &DataHolderSharedObject::sendCommand2pollDevStr);
+    connect(dataProcessor, &DataHolderSharedObjectProcessor::sendCommand2pollDevMap , this, &DataHolderSharedObject::sendCommand2pollDevMap);
+    connect(dataProcessor, &DataHolderSharedObjectProcessor::sendCommand2pollDevStr , this, &DataHolderSharedObject::sendCommand2pollDevStr);
+    connect(dataProcessor, &DataHolderSharedObjectProcessor::sendAMessageDevMap     , this, &DataHolderSharedObject::sendAMessageDevMap);
 
     connect(this, &DataHolderSharedObject::onThisCommandFailed, dataProcessor, &DataHolderSharedObjectProcessor::onThisCommandFailed);
 

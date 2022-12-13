@@ -7,6 +7,7 @@
 #include "dataholdersharedmemoryobject.h"
 #include "dataholderlocalserver.h"
 #include "matildaconnectionsocket.h"
+#include "dataholdermessagesender.h"
 
 class DataHolderManager : public QObject
 {
@@ -27,11 +28,19 @@ signals:
     void setEventManagerRules(QVariantHash hashRules);
 
 
+    //to external apps
     void sendCommand2pollDevStr(quint16 pollCode, QString args);
 
     void sendCommand2pollDevMap(quint16 pollCode, QVariantMap mapArgs);
 
+    void sendAMessageDevMap(QVariantMap mapArgs, QString messageClientName);
+
+    //status of a messaga
     void onThisCommandFailed(QString ruleNameId, QString counterId);
+
+
+    void smartPingTheseHosts(QStringList hosts);
+
 
     void add2systemLogEvent(QString evnt);
 
@@ -62,6 +71,7 @@ private:
 
     void createMatildaLocalSocket();
 
+    void createMessageSender();
 };
 
 #endif // DATAHOLDERMANAGER_H

@@ -22,8 +22,6 @@ public:
 signals:
     void startTmrArgs();
 
-    void onThisCommandFailed(QString ruleNameId, QString counterId);
-
     void append2log(QString message);
 
 public slots:
@@ -40,21 +38,8 @@ public slots:
     void sendCachedArgs();
 
 
-    void onRestartDhcp();
 
 private:
-    bool sendCommand2telegramDevMap(const QVariantMap &mapArgs);
-
-    QByteArray readBashProc(const QString &app, const QStringList &args, const bool &fastRead);
-
-    void startPingTest();
-
-    void sendEth0Info();
-
-
-    void restartIface(const bool &hardMode);
-
-    void restartDhcp();
 
 
     bool sendCommand2appHash(quint16 pollCode, QVariantHash hash, bool isCached);
@@ -64,7 +49,6 @@ private:
     QList<quint16> lcodes;
     QList<QVariantHash> lhashs;
 
-    quint16 telegramFailedSendCounter;
 };
 
 #endif // MATILDACONNECTIONSOCKET_H

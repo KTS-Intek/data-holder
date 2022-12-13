@@ -52,6 +52,7 @@ SOURCES += \
         data-holder-src/dataholderlocalserver.cpp \
         data-holder-src/dataholderlocalsocket.cpp \
         data-holder-src/dataholdermanager.cpp \
+        data-holder-src/dataholdermessagesender.cpp \
         data-holder-src/dataholdersharedmemoryobject.cpp \
         data-holder-src/dataholdersharedobject.cpp \
         data-holder-src/dataholdersharedobjectprocessor.cpp \
@@ -64,6 +65,7 @@ HEADERS += \
     data-holder-src/dataholderlocalservercommands.h \
     data-holder-src/dataholderlocalsocket.h \
     data-holder-src/dataholdermanager.h \
+    data-holder-src/dataholdermessagesender.h \
     data-holder-src/dataholdersharedmemoryobject.h \
     data-holder-src/dataholdersharedobject.h \
     data-holder-src/dataholdersharedobjectprocessor.h \
