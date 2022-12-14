@@ -52,8 +52,17 @@ signals:
 
     void sendAMessageDevMap(QVariantMap mapArgs, QString messageClientName);
 
+    void addThisDHEvent(QString ruleName, int cntr, QString ruleLine, QString devId, QString additioanlDevId);
+
 
     void onThisCommandFailed(QString ruleNameId, QString counterId);
+
+
+    //to dh processor from IPC
+    void testThisRule(QString ruleName, QVariantHash oneRule);
+
+    void resetThisRule(QString ruleName);
+
 
 
     //to iterator

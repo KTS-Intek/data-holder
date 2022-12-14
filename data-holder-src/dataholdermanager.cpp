@@ -173,6 +173,7 @@ void DataHolderManager::createShareMemoryWriterAppLogs()
 //    connect(this, &HTTPResourceManager::add2systemLogWarn , writer, &DataHolderAppLogs::add2systemLogWarn);
 
 //    connect(this, SIGNAL(goGoGo()), writerthred, SLOT(start()));
+    connect(this, &DataHolderManager::addThisDHEvent, writer, &DataHolderAppLogs::addThisDHEvent);
 
 
     writerthred->start();
@@ -196,6 +197,10 @@ void DataHolderManager::createSharedTableObject()
 
 
     connect(dhData, &DataHolderSharedObject::append2log, this, &DataHolderManager::append2log);
+    connect(dhData, &DataHolderSharedObject::addThisDHEvent, this, &DataHolderManager::addThisDHEvent);
+
+    connect(this, &DataHolderManager::testThisRule, dhData, &DataHolderSharedObject::testThisRule);
+    connect(this, &DataHolderManager::resetThisRule, dhData, &DataHolderSharedObject::resetThisRule);
 }
 
 //---------------------------------------------------------------------------------------
@@ -281,6 +286,19 @@ void DataHolderManager::createMatildaLocalSocket()
     connect(extSocket, &MatildaConnectionSocket::append2log, this, &DataHolderManager::append2log);
 
 
+
+    //from IPC to messageSender
+    connect(extSocket, &MatildaConnectionSocket::smartPingTheseHostsResult, this, &DataHolderManager::smartPingTheseHostsResult);
+
+//    void smartPingTheseHostsResult(QString messagetag, bool ok, QString message);
+    //from messageSender
+    connect(this, &DataHolderManager::smartPingTheseHosts, extSocket, &MatildaConnectionSocket::smartPingTheseHosts);
+//    void smartPingTheseHosts(QStringList hosts, QString messagetag);//ask matilda-bbb iface manager to ping , in case of error restart eth0
+
+
+    connect(extSocket, &MatildaConnectionSocket::testThisRule, this, &DataHolderManager::testThisRule);
+    connect(extSocket, &MatildaConnectionSocket::resetThisRule, this, &DataHolderManager::resetThisRule);
+
     extSocketThrd->start();
 
 }
@@ -304,6 +322,18 @@ void DataHolderManager::createMessageSender()
     connect(this, &DataHolderManager::sendAMessageDevMap    , messanger, &DataHolderMessageSender::sendAMessageDevMap);
 
 //    connect(messanger, &DataHolderMessageSender::smartPingTheseHosts)
+
+
+    //from IPC to messageSender
+    connect(this, &DataHolderManager::smartPingTheseHostsResult, messanger, &DataHolderMessageSender::smartPingTheseHostsResult, Qt::DirectConnection);
+
+//    void smartPingTheseHostsResult(QString messagetag, bool ok, QString message);
+    //from messageSender
+    connect(messanger, &DataHolderMessageSender::smartPingTheseHosts, this, &DataHolderManager::smartPingTheseHosts);
+//    void smartPingTheseHosts(QStringList hosts, QString messagetag);//ask matilda-bbb iface manager to ping , in case of error restart eth0
+
+
+
 
     t->start();
 

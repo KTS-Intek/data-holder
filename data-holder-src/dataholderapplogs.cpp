@@ -6,3 +6,16 @@ DataHolderAppLogs::DataHolderAppLogs(const QString &sharedMemoName, const QStrin
 {
 
 }
+
+void DataHolderAppLogs::addThisDHEvent(QString ruleName, int cntr, QString ruleLine, QString devId, QString additioanlDevId)
+{
+    QStringList l;
+    l.append(ruleName);
+    l.append(QString::number(cntr));
+    l.append(ruleLine);
+    l.append(devId);
+    l.append(additioanlDevId);
+
+    add2systemLogWarn(l.join("\t"));
+
+}

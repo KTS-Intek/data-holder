@@ -6,17 +6,41 @@
 ///[!] MatildaIO
 #include "matilda-bbb-src/shared/runprocess.h"
 
+//-----------------------------------------------------------------------------------------
 
-DataHolderMessageSender::DataHolderMessageSender(const bool &verboseMode, QObject *parent) : QObject(parent), verboseMode(verboseMode)
+DataHolderMessageSender::DataHolderMessageSender(const bool &verboseMode, QObject *parent)
+    : QObject(parent), verboseMode(verboseMode)
 {
-    telegramFailedSendCounter = 0;
 
 }
+
+//-----------------------------------------------------------------------------------------
+
+bool DataHolderMessageSender::getPingAnswerIsReceived()
+{
+
+    QReadLocker locker(&myLock);
+    const auto r = myState.isWaiting4pingAnswer;
+    return r;
+}
+
+//-----------------------------------------------------------------------------------------
+
+DataHolderMessageSender::LastSmartPing DataHolderMessageSender::getLastPingAnswer()
+{
+    QReadLocker locker(&myLock);
+    const auto r = myState.lastPing;
+    return r;
+}
+
+//-----------------------------------------------------------------------------------------
 
 void DataHolderMessageSender::onThreadStarted()
 {
     emit append2log(tr("Telegram client is ready"));
 }
+
+//-----------------------------------------------------------------------------------------
 
 void DataHolderMessageSender::sendAMessageDevMap(QVariantMap mapArgs, QString messageClientName)
 {
@@ -28,48 +52,71 @@ void DataHolderMessageSender::sendAMessageDevMap(QVariantMap mapArgs, QString me
         return;
 
     if(!sendThis2telegramDevMap(mapArgs, true) ){
-//        emit smartPingTheseHosts(QString("api.telegram.org").split(" "), "some tag here to accecpt the result"); wait 10-15 sec, and try again
+        //        emit smartPingTheseHosts(QString("api.telegram.org").split(" "), "some tag here to accecpt the result"); wait 10-15 sec, and try again
 
 
-        //add some network test
-        startPingTest();
-        telegramFailedSendCounter++;
+        myState.telegramFailedSendCounter++;
 
-        if(telegramFailedSendCounter == 1){
-            restartIface(false);
-            startPingTest();
-            if(sendThis2telegramDevMap(mapArgs, false) ){
-                telegramFailedSendCounter = 0;
-                 return;
-            }
-        }
-
-
-        if(telegramFailedSendCounter > 1 && telegramFailedSendCounter < 10){
-
-
-            switch(telegramFailedSendCounter){
-//                case 2: restartDhcp(); break;
-            case 3: restartIface(false); break;
-            case 5: {
-                telegramFailedSendCounter = 400; //do it only once;
-                 restartIface(true);
-                 break; }
+        if(myState.telegramFailedSendCounter < 3){ //for testing, if it works, remove the counter
+            //use matilda bbb to reset the interface
+            if(startIPCPingTest("api.telegram.org") && sendThis2telegramDevMap(mapArgs, false)){
+                myState.telegramFailedSendCounter = 0;
+                return;
             }
 
 
+
+        }else{
+
+            //it shouldn't be here, it is only for emergency
+
+
+//            //add some network test
+//            startPingTest();
+
+//            if(myState.telegramFailedSendCounter == 1){
+//                restartIface(false);
+//                startPingTest();
+//                if(sendThis2telegramDevMap(mapArgs, false) ){
+//                    telegramFailedSendCounter = 0;
+//                    return;
+//                }
+//            }
+
+
+            if(myState.telegramFailedSendCounter > 1 && myState.telegramFailedSendCounter < 10){
+
+
+                switch(myState.telegramFailedSendCounter){
+                //                case 2: restartDhcp(); break;
+                case 3: restartIface(false); break;
+                case 5: {
+                    myState.telegramFailedSendCounter = 400; //do it only once;
+                    restartIface(true);
+                    break; }
+                }
+
+
+            }
+
+
         }
+
     }else{
-        telegramFailedSendCounter = 0;
+        myState.telegramFailedSendCounter = 0;
     }
 
 }
+
+//-----------------------------------------------------------------------------------------
 
 void DataHolderMessageSender::onRestartDhcp()
 {
     restartDhcp();
 
 }
+
+//-----------------------------------------------------------------------------------------
 
 bool DataHolderMessageSender::sendThis2telegramDevMap(const QVariantMap &mapArgs, const bool &silent)
 {
@@ -135,6 +182,40 @@ bool DataHolderMessageSender::sendThis2telegramDevMap(const QVariantMap &mapArgs
     return false;
 }
 
+//-----------------------------------------------------------------------------------------
+
+void DataHolderMessageSender::smartPingTheseHostsResult(QString messagetag, bool ok, QString message)
+{
+    setLastReceived(messagetag, ok, message);
+    //it is called from other thread
+}
+
+//-----------------------------------------------------------------------------------------
+
+void DataHolderMessageSender::setLastReceived(QString messagetag, bool ok, QString message)
+{
+    //I remember something like that  didn't work without this shit
+    if(true){
+        QWriteLocker locker(&myLock);
+        myState.lastPing = LastSmartPing(messagetag, ok, message);
+        myState.isWaiting4pingAnswer = false;
+    }
+}
+
+
+//-----------------------------------------------------------------------------------------
+
+void DataHolderMessageSender::resetPingAnswerIsReceived()
+{
+    if(true){
+        QWriteLocker locker(&myLock);
+        myState.isWaiting4pingAnswer = true;
+        myState.lastPing = LastSmartPing();
+    }
+}
+
+//-----------------------------------------------------------------------------------------
+
 QByteArray DataHolderMessageSender::readBashProc(const QString &app, const QStringList &args, const bool &fastRead)
 {
 
@@ -142,18 +223,60 @@ QByteArray DataHolderMessageSender::readBashProc(const QString &app, const QStri
     return RunProcess::runBashProcExt(QString("%1 %2").arg(app).arg(args.join(" ")).toUtf8(), verboseMode, fastRead ? 5000 : 15000, false);
 }
 
+//-----------------------------------------------------------------------------------------
+
+bool DataHolderMessageSender::startIPCPingTest(const QString &host)
+{
+    resetPingAnswerIsReceived();
+
+    emit append2log(tr("IPC ping %1").arg(host));
+
+    const QString messagetag = QString("DHMessageSender-%1-%2")
+            .arg(QString::number(myState.ipcPingRoundCounter++))
+            .arg(QDateTime::currentMSecsSinceEpoch());
+
+    QElapsedTimer time;
+    time.start();
+    emit smartPingTheseHosts(host.split(" "), messagetag);
+
+    for(int i = 0; i < 1000 && time.elapsed() < 60000; i++){
+        QThread::msleep(100);
+        if(getPingAnswerIsReceived() && getLastPingAnswer().messagetag == messagetag)
+            break;
+    }
+
+    const auto lastPing = getLastPingAnswer();
+
+    if(lastPing.messagetag != messagetag){
+        emit append2log(tr("IPC ping, bad message tag is received").arg(lastPing.messagetag));
+    }
+
+    if(lastPing.lastOk){
+        emit append2log(tr("IPC ping, success: %1").arg(lastPing.message));
+    }else{
+        emit append2log(tr("IPC ping, failed: %1").arg(lastPing.message));
+    }
+
+    return lastPing.lastOk;
+
+}
+
+//-----------------------------------------------------------------------------------------
+
 void DataHolderMessageSender::startPingTest()
 {
     // ping 8.8.8.8 -w 5
-//    emit append2log(tr("ping=%1,%2").arg(QString::number(telegramFailedSendCounter)).arg(QString(readBashProc("ping",
-//                                                           QString("8.8.8.8 -w 5 -c 5").split(";"), true))));
-//ping telegram, dns check
+    //    emit append2log(tr("ping=%1,%2").arg(QString::number(telegramFailedSendCounter)).arg(QString(readBashProc("ping",
+    //                                                           QString("8.8.8.8 -w 5 -c 5").split(";"), true))));
+    //ping telegram, dns check
     emit append2log(tr("ping=%1,%2")
-                    .arg(QString::number(telegramFailedSendCounter))
+                    .arg(QString::number(myState.telegramFailedSendCounter))
                     .arg(QString(readBashProc("ping",
-                                                           QString("api.telegram.org -w 5 -c 5").split(";"), true))));
+                                              QString("api.telegram.org -w 5 -c 5").split(";"), true))));
 
 }
+
+//-----------------------------------------------------------------------------------------
 
 void DataHolderMessageSender::sendEth0Info()
 {
@@ -161,11 +284,13 @@ void DataHolderMessageSender::sendEth0Info()
                                                             QString("eth0").split(";"), false))));
 }
 
+//-----------------------------------------------------------------------------------------
+
 void DataHolderMessageSender::restartIface(const bool &hardMode)
 {
     sendEth0Info();
 
-//    QString command = "ifdown eth0 && ifup eth0 && date"; it doesn't work as it should
+    //    QString command = "ifdown eth0 && ifup eth0 && date"; it doesn't work as it should
     QString command = "ifconfig eth0 down && ifconfig eth0 up";
     if(hardMode){
         command.prepend("ip addr flush dev eth0 && ");
@@ -181,9 +306,13 @@ void DataHolderMessageSender::restartIface(const bool &hardMode)
     sendEth0Info();
 }
 
+//-----------------------------------------------------------------------------------------
+
 void DataHolderMessageSender::restartDhcp()
 {
     emit append2log(tr("dhcpcd=%1")
                     .arg(QString(readBashProc("dhclient -r eth0 -v && date", QStringList(), false))));
 }
+
+//-----------------------------------------------------------------------------------------
 

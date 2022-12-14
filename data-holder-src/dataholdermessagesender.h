@@ -10,14 +10,31 @@ class DataHolderMessageSender : public QObject
 public:
     explicit DataHolderMessageSender(const bool &verboseMode, QObject *parent = nullptr);
 
+    struct LastSmartPing
+    {
+        QString messagetag;
+        bool lastOk;
+        QString message;
+
+        LastSmartPing() : lastOk(false) {}
+        LastSmartPing(const QString &messagetag, const bool &lastOk, const QString &message) : messagetag(messagetag), lastOk(lastOk), message(message) {}
+    };
+
+    QReadWriteLock myLock;
     bool verboseMode;
+
+    bool getPingAnswerIsReceived();
+    LastSmartPing getLastPingAnswer();
 
 signals:
     void onThisCommandFailed(QString ruleNameId, QString counterId);
 
     void append2log(QString message);
 
-    void smartPingTheseHosts(QStringList hosts, QString messagetag);//ask matilda-bbb iface manager to ping , in case of error restart eth0, it will be added later
+    void smartPingTheseHosts(QStringList hosts, QString messagetag);//ask matilda-bbb iface manager to ping , in case of error restart eth0
+
+
+    //from messageSender
 
 
 public slots:
@@ -31,7 +48,16 @@ public slots:
 private:
     bool sendThis2telegramDevMap(const QVariantMap &mapArgs, const bool &silent);
 
+    //from IPC to messageSender
+    void smartPingTheseHostsResult(QString messagetag, bool ok, QString message);//direct connection
+
+    void setLastReceived(QString messagetag, bool ok, QString message);
+
+    void resetPingAnswerIsReceived();
+
     QByteArray readBashProc(const QString &app, const QStringList &args, const bool &fastRead);
+
+    bool startIPCPingTest(const QString &host);
 
     void startPingTest();
 
@@ -42,7 +68,21 @@ private:
 
     void restartDhcp();
 
-    quint16 telegramFailedSendCounter;
+
+    struct MessageSenderState
+    {
+
+        quint16 telegramFailedSendCounter;
+
+        //multi thread access
+        bool isWaiting4pingAnswer;
+        LastSmartPing lastPing;
+
+        quint16 ipcPingRoundCounter;
+        MessageSenderState() : telegramFailedSendCounter(0), isWaiting4pingAnswer(false), ipcPingRoundCounter(0) {}
+    } myState;
+
+
 
 };
 

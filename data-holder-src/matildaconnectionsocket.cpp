@@ -40,6 +40,31 @@ void MatildaConnectionSocket::decodeReadData(const QVariant &dataVar, const quin
     //           emit command4dev(dataVar.toHash().value("c").toUInt(), dataVar.toHash().value("d").toString());
     //           break;}
 
+    case MTD_EXT_COMMAND_2_SMARTPING:{
+        const QVariantHash h = dataVar.toHash();
+//        h.insert("messagetag", messagetag);
+//        h.insert("ok", ok);
+//        h.insert("message", message);
+
+        emit smartPingTheseHostsResult(h.value("messagetag").toString(), h.value("ok").toBool(), h.value("message").toString());
+
+        break;}
+
+    case MTD_EXT_CUSTOM_COMMAND_0:{
+        //rule test
+        const QVariantHash h = dataVar.toHash();
+           //h.name - a rule name
+           //h.rule - rule settings
+        emit testThisRule(h.value("name").toString(), h.value("rule").toHash());
+        break;}
+
+
+    case MTD_EXT_CUSTOM_COMMAND_1:{
+        //inData, rule reset
+            const QVariantHash h = dataVar.toHash();
+            //h.name - a rule name if empty all
+        emit resetThisRule(h.value("name").toString());
+        break;}
 
 
     default: {
@@ -102,6 +127,32 @@ void MatildaConnectionSocket::sendCommand2pollDevMap(quint16 pollCode, QVariantM
 
 }
 
+//-------------------------------------------------------------------------------------
+
+void MatildaConnectionSocket::smartPingTheseHosts(QStringList hosts, QString messagetag)
+{
+//    const QVariantHash h = dataVar.toHash();
+//    QStringList hosts = h.value("hosts").toStringList();
+//    QString messagetag = h.value("messagetag").toString();
+
+//    emit smartPingTheseHosts(hosts, messagetag, mtdExtName);
+
+    if(hosts.isEmpty() || messagetag.isEmpty()){
+        emit smartPingTheseHostsResult(messagetag, false, "command is not sent: check hosts and messagetag");
+        return;
+    }
+
+
+    QVariantHash h;
+    h.insert("hosts", hosts);
+    h.insert("messagetag", messagetag);
+
+    mWrite2extension(h, MTD_EXT_COMMAND_2_SMARTPING);
+
+}
+
+
+//-------------------------------------------------------------------------------------
 
 void MatildaConnectionSocket::sendCachedArgs()
 {
@@ -119,6 +170,8 @@ void MatildaConnectionSocket::sendCachedArgs()
         sendCommand2appHash(lcodesL.at(i), lhashsL.at(i), true);
     }
 }
+
+//-------------------------------------------------------------------------------------
 
 bool MatildaConnectionSocket::sendCommand2appHash(quint16 pollCode, QVariantHash hash, bool isCached)
 {
@@ -160,6 +213,8 @@ bool MatildaConnectionSocket::sendCommand2appHash(quint16 pollCode, QVariantHash
 
 
 }
+
+//-------------------------------------------------------------------------------------
 
 void MatildaConnectionSocket::sendItLater(quint16 pollCode, QVariantHash hash)
 {

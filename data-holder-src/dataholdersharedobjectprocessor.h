@@ -30,9 +30,18 @@ public:
 
     MyEventsRules fromHashMyEventsRules(const QVariantHash &h);
 
+    QList<MyExecuteLine> fromStringList(const QStringList &commands2executeStrList);
+
+
      QHash<QString,QString> hdataFromOneRecord(const QString &devID, const DHMsecRecord &oneRecord);
 
      QString getHRulesCounterKey(const MyRuleSettings &ruleSett);
+
+     QString getHRuleNameFromTheKey(const QString &key);
+
+     QJsonObject getTelegramJsonSett(const QString &line);
+
+     MyExecuteLine getExecuteTelegramSett(const QString &line);
 
 signals:
      void sendCommand2pollDevStr(quint16 pollCode, QString args);
@@ -41,10 +50,12 @@ signals:
 
      void sendAMessageDevMap(QVariantMap mapArgs, QString messageClientName);
 
+     void addThisDHEvent(QString ruleName, int cntr, QString ruleLine, QString devId, QString additioanlDevId);
+
+
 
      void append2log(QString message);
 
-signals:
      //from iterator
     void gimmeThisDevIDData(QString devID, quint16 pollCode, QString dataKey);
 
@@ -65,6 +76,15 @@ public slots:
 
 
     void onThisCommandFailed(QString ruleNameId, QString counterId);
+
+
+    //to dh processor from IPC
+    void testThisRule(QString ruleName, QVariantHash oneRule);
+
+    void resetThisRule(QString ruleName);
+
+private:
+    int executeLines(const QList<MyExecuteLine> &commands2execute, const QString &devID, const QString &ruleNameLineKey, const QString &ruleCounterKey);
 
 };
 

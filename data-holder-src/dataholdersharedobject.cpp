@@ -127,6 +127,10 @@ void DataHolderSharedObject::createDataProcessor()
     connect(this, &DataHolderSharedObject::setThisAdditionalDevIDData   , dataProcessor, &DataHolderSharedObjectProcessor::setThisAdditionalDevIDData   );
 
     connect(dataProcessor, &DataHolderSharedObjectProcessor::append2log, this, &DataHolderSharedObject::append2log);
+    connect(dataProcessor, &DataHolderSharedObjectProcessor::addThisDHEvent, this, &DataHolderSharedObject::addThisDHEvent);
+
+    connect(this, &DataHolderSharedObject::testThisRule, dataProcessor, &DataHolderSharedObjectProcessor::testThisRule);
+    connect(this, &DataHolderSharedObject::resetThisRule, dataProcessor, &DataHolderSharedObjectProcessor::resetThisRule);
 
 }
 

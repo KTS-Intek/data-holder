@@ -57,85 +57,8 @@ MyEventsRules DataHolderSharedObjectProcessor::fromHashMyEventsRules(const QVari
         if(hRulesCounterL.contains(getHRulesCounterKey(oneRule)))
             hRulesCounter.insert(getHRulesCounterKey(oneRule), hRulesCounterL.value(getHRulesCounterKey(oneRule)));
 
-        for(int j = 0, jmax = commands2execute.size(); j < jmax; j++){
+        oneRule.commands2execute = fromStringList(commands2execute);
 
-            const QString line = commands2execute.at(j); //<poll code><space><arguments> or path to script, so check both
-
-            const int indxFrom = line.indexOf(" ");
-
-            if(indxFrom < 0)
-                continue;
-
-            MyExecuteLine oneLineSett;
-            oneLineSett.line = line.mid(indxFrom + 1);
-            oneLineSett.command = line.left(indxFrom).toUInt();
-
-
-            //arguments are necessary
-            if(oneLineSett.line.isEmpty())
-                continue;
-
-
-            if(oneLineSett.command < POLL_CODE_FF_READ_LAMP ){
-                const QString path2script = line.left(indxFrom);
-
-                const QFileInfo fi(path2script);
-                if(fi.exists() && fi.isExecutable()){
-                    QJsonObject json;
-                    json.insert("__path", path2script);
-                    json.insert("__message",oneLineSett.line );
-
-
-                    oneLineSett.line = QJsonDocument(json).toJson(QJsonDocument::Compact);
-
-                    oneLineSett.isJson = true;
-                    oneLineSett.command = 0xFFFF;//send message
-
-                    oneRule.commands2execute.append(oneLineSett);
-
-
-
-
-                    if(verboseMode){
-                        qDebug() << "fromHashMyEventsRules script is found " << path2script <<  line.mid(indxFrom + 1);
-
-//                        const QUrl url(line.mid(indxFrom + 1));
-//                        const QString strArgs = url.toEncoded();
-
-                        qDebug() << "fromHashMyEventsRules script is found " << QUrl::toPercentEncoding(line.mid(indxFrom + 1));
-
-                    }
-
-                }
-
-
-                continue;
-
-            }
-
-
-            if(oneLineSett.line.contains("{") && oneLineSett.line.contains("}") && oneLineSett.line.contains(":")){
-                const QJsonDocument jdoc = QJsonDocument::fromJson(oneLineSett.line.toUtf8());
-
-                if(!jdoc.isNull()){
-                    if(jdoc.isObject()){
-                        const QJsonObject json = jdoc.object();
-                        if(!json.isEmpty()){
-                            oneLineSett.isJson = true;
-                            oneRule.commands2execute.append(oneLineSett);
-                        }
-                        continue;
-
-                    }
-//                    if(jdoc.isArray()){     do I really need it?
-//                        const QJsonArray array = jdoc.array();
-
-
-//                    }
-                }
-            }
-            oneRule.commands2execute.append(oneLineSett);
-        }
 
         if(oneRule.commands2execute.isEmpty())
             continue;//bad settings, ignore them
@@ -148,6 +71,103 @@ MyEventsRules DataHolderSharedObjectProcessor::fromHashMyEventsRules(const QVari
     }
 
     return out;
+}
+
+//----------------------------------------------------------------------------------------
+
+QList<MyExecuteLine> DataHolderSharedObjectProcessor::fromStringList(const QStringList &commands2executeStrList)
+{
+    QList<MyExecuteLine> commands2execute;
+    for(int j = 0, jmax = commands2executeStrList.size(); j < jmax; j++){
+
+        const QString line = commands2executeStrList.at(j); //<poll code><space><arguments> or path to script, so check both
+
+        const int indxFrom = line.indexOf(" ");
+
+        if(indxFrom < 0)
+            continue;
+
+        MyExecuteLine oneLineSett;
+        oneLineSett.line = line.mid(indxFrom + 1);
+        oneLineSett.command = line.left(indxFrom).toUInt();
+
+
+        //arguments are necessary
+        if(oneLineSett.line.isEmpty())
+            continue;
+
+
+        if(oneLineSett.command < POLL_CODE_FF_READ_LAMP ){
+            //script mode, obsolete mode
+            const QString path2script = line.left(indxFrom);
+
+            const QFileInfo fi(path2script);
+            if(fi.exists() && fi.isExecutable()){
+                QJsonObject json;
+                json.insert("__path", path2script);
+                json.insert("__message",oneLineSett.line );
+
+
+                oneLineSett.line = QJsonDocument(json).toJson(QJsonDocument::Compact);
+
+                oneLineSett.isJson = true;
+                oneLineSett.command = 0xFFFF;//send message
+
+                commands2execute.append(oneLineSett);
+
+
+
+
+                if(verboseMode){
+                    qDebug() << "fromHashMyEventsRules script is found " << path2script <<  line.mid(indxFrom + 1);
+
+//                        const QUrl url(line.mid(indxFrom + 1));
+//                        const QString strArgs = url.toEncoded();
+
+                    qDebug() << "fromHashMyEventsRules script is found " << QUrl::toPercentEncoding(line.mid(indxFrom + 1));
+
+                }
+                continue;
+
+            }
+
+
+            //this is the future for messages
+            if(path2script == "telegram"){ //message mode name
+                oneLineSett = getExecuteTelegramSett(line);
+                if(oneLineSett.command > 0)
+                    commands2execute.append(oneLineSett);
+
+            }
+
+            continue;
+
+        }
+
+
+        if(oneLineSett.line.contains("{") && oneLineSett.line.contains("}") && oneLineSett.line.contains(":")){
+            const QJsonDocument jdoc = QJsonDocument::fromJson(oneLineSett.line.toUtf8());
+
+            if(!jdoc.isNull()){
+                if(jdoc.isObject()){
+                    const QJsonObject json = jdoc.object();
+                    if(!json.isEmpty()){
+                        oneLineSett.isJson = true;
+                        commands2execute.append(oneLineSett);
+                    }
+                    continue;
+
+                }
+//                    if(jdoc.isArray()){     do I really need it?
+//                        const QJsonArray array = jdoc.array();
+
+
+//                    }
+            }
+        }
+        commands2execute.append(oneLineSett);
+    }
+    return commands2execute;
 }
 
 //----------------------------------------------------------------------------------------
@@ -188,6 +208,65 @@ QString DataHolderSharedObjectProcessor::getHRulesCounterKey(const MyRuleSetting
 {
     return QString("%1\n\n\n%2").arg(ruleSett.ruleName).arg(ruleSett.ruleLine);
 
+}
+
+//----------------------------------------------------------------------------------------
+
+QString DataHolderSharedObjectProcessor::getHRuleNameFromTheKey(const QString &key)
+{
+    return key.split("\n\n\n").first();
+}
+
+//----------------------------------------------------------------------------------------
+
+
+QJsonObject DataHolderSharedObjectProcessor::getTelegramJsonSett(const QString &line)
+{
+    QJsonObject json;
+    //telegram botToken chId message
+    const QStringList sett = line.split(" ");
+    if(sett.length() > 3){
+        //sett.at(0) - telegram
+        const QString botToken = sett.at(1);
+        const QString chId = sett.at(2);
+        const QString message = sett.mid(3).join(" ");
+
+        if(botToken.isEmpty() || chId.isEmpty()){
+            emit append2log(tr("Rule %1, bad settings, token=%2, ch=%3")
+                            .arg(sett.at(0))
+                            .arg(int(botToken.isEmpty()))
+                            .arg(int(chId.isEmpty()))
+                            );
+            return json;
+        }
+
+        json.insert("__path", "/opt/matilda/script/telegram");
+        json.insert("__botToken", botToken);
+        json.insert("__chId", chId);
+        json.insert("__message", message );
+
+    }
+
+    return json;
+}
+
+//----------------------------------------------------------------------------------------
+
+
+MyExecuteLine DataHolderSharedObjectProcessor::getExecuteTelegramSett(const QString &line)
+{
+    MyExecuteLine oneLineSett;
+    const auto json = getTelegramJsonSett(line);
+
+    if(!json.isEmpty()){
+
+        oneLineSett.line = QJsonDocument(json).toJson(QJsonDocument::Compact);
+
+        oneLineSett.isJson = true;
+        oneLineSett.command = 0xFFFF;//send message
+
+    }
+    return oneLineSett;
 }
 
 //----------------------------------------------------------------------------------------
@@ -286,6 +365,11 @@ void DataHolderSharedObjectProcessor::checkThisDevice(const quint16 &pollCode, c
         if(oneRule.limitExecutions > 0 && oneRule.limitExecutions < ruleCounter){
             continue;//stop execution of the rule
         }
+
+//        void addThisDHEvent(QString ruleName, int cntr, QString ruleLine, QString devId, QString additioanlDevId);
+        emit addThisDHEvent(oneRule.ruleName, ruleCounter, oneRule.ruleLine, devID, oneRecord.additionalID);
+
+
         ruleCounterHash.insert(ruleCounterKey, ruleCounter);
 
         hRulesCounter.insert(ruleNameLineKey, ruleCounterHash);
@@ -296,40 +380,12 @@ void DataHolderSharedObjectProcessor::checkThisDevice(const quint16 &pollCode, c
         if(verboseMode)
             qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice ruleCounter" << ruleCounter << oneRule.limitExecutions << oneRule.ruleLine << oneRule.ruleName << ruleCounterKey;
 
-        for(int j = 0, jmax = oneRule.commands2execute.size(); j < jmax; j++){
-            auto oneLineSett = oneRule.commands2execute.at(j);
 
-            if(oneLineSett.line.contains("$NI"))
-                oneLineSett.line = oneLineSett.line.replace("$NI", devID);
+        const int cntr = executeLines(oneRule.commands2execute, devID, ruleNameLineKey, ruleCounterKey);
 
-            if(oneLineSett.isJson){
-                QVariantMap map = QJsonDocument::fromJson(oneLineSett.line.toUtf8()).object().toVariantMap();
-                if(map.isEmpty()){
-                    if(verboseMode)
-                        qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice " << oneLineSett.isJson << oneLineSett.line;
-                    continue;
-                }
 
-                if(verboseMode)
-                    qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice send map " << oneLineSett.command << map;
-
-                map.insert("__ruleNameId", ruleNameLineKey);
-                map.insert("__counterId", ruleCounterKey);
-                //        emit onThisCommandFailed(mapArgs.value("__ruleNameId").toString(), mapArgs.value("__counterId").toString());
-
-                if(oneLineSett.command == 0xFFFF)
-                    emit sendAMessageDevMap(map, "telegram");
-                else
-                    emit sendCommand2pollDevMap(oneLineSett.command, map);
-
-                continue;
-            }
-
-            if(verboseMode)
-                qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice send str " << oneLineSett.command << oneLineSett.line << oneRule.ruleName << oneRule.ruleLine;
-
-            emit sendCommand2pollDevStr(oneLineSett.command, oneLineSett.line);
-        }
+        if(verboseMode)
+            qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice send str " << cntr << oneRule.ruleName << oneRule.ruleLine;
     }
 
 
@@ -340,6 +396,11 @@ void DataHolderSharedObjectProcessor::checkThisDevice(const quint16 &pollCode, c
 void DataHolderSharedObjectProcessor::onThisCommandFailed(QString ruleNameId, QString counterId)
 {
 //    const QString ruleNameLineKey = getHRulesCounterKey(oneRule);
+
+    if(ruleNameId.isEmpty()){
+        addThisDHEvent();
+        return;//test conditions
+    }
 
     auto ruleCounterHash = hRulesCounter.value(ruleNameId) ;
 //    const QString ruleCounterKey = QString("%1\n%2\n%3").arg(int(pollCode)).arg(devID).arg(oneRecord.additionalID);
@@ -360,6 +421,95 @@ void DataHolderSharedObjectProcessor::onThisCommandFailed(QString ruleNameId, QS
     }
 
 
+}
+
+//----------------------------------------------------------------------------------------
+
+void DataHolderSharedObjectProcessor::testThisRule(QString ruleName, QVariantHash oneRule)
+{
+//execute the rule command
+    const auto commands2execute = fromStringList(oneRule.value("c").toStringList());
+
+    if(commands2execute.isEmpty()){
+
+        emit append2log(tr("Nothing to execute"));
+        return;
+    }
+    const auto variables = oneRule.value("v").toHash();
+
+    const QString devID = variables.value("NI").toString();
+    const QString additionalID = variables.value("SN").toString();
+
+
+    //        void addThisDHEvent(QString ruleName, int cntr, QString ruleLine, QString devId, QString additioanlDevId);
+    emit addThisDHEvent(oneRule.ruleName, ruleCounter, oneRule.ruleLine, devID, oneRecord.additionalID);
+
+
+
+
+    const int cntr = executeLines(commands2execute, devID, ruleNameLineKey, ruleCounterKey);
+
+}
+
+//----------------------------------------------------------------------------------------
+
+void DataHolderSharedObjectProcessor::resetThisRule(QString ruleName)
+{
+    if(ruleName.isEmpty()){
+        hRulesCounter.clear();
+    }else{
+        const auto lk = hRulesCounter.keys();
+        for(int i = 0, imax = lk.size(); i < imax; i++){
+            if(getHRuleNameFromTheKey(lk.at(i)) == ruleName){
+                hRulesCounter.remove(lk.at(i));
+            }
+        }
+    }
+}
+
+//----------------------------------------------------------------------------------------
+
+int DataHolderSharedObjectProcessor::executeLines(const QList<MyExecuteLine> &commands2execute, const QString &devID, const QString &ruleNameLineKey, const QString &ruleCounterKey)
+{
+    int cntr = 0;
+    for(int j = 0, jmax = commands2execute.size(); j < jmax; j++){
+        auto oneLineSett = commands2execute.at(j);
+
+        if(oneLineSett.line.contains("$NI"))
+            oneLineSett.line = oneLineSett.line.replace("$NI", devID);
+
+        if(oneLineSett.isJson){
+            QVariantMap map = QJsonDocument::fromJson(oneLineSett.line.toUtf8()).object().toVariantMap();
+            if(map.isEmpty()){
+                if(verboseMode)
+                    qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice " << oneLineSett.isJson << oneLineSett.line;
+                continue;
+            }
+
+            if(verboseMode)
+                qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice send map " << oneLineSett.command << map;
+
+            map.insert("__ruleNameId", ruleNameLineKey);
+            map.insert("__counterId", ruleCounterKey);
+            //        emit onThisCommandFailed(mapArgs.value("__ruleNameId").toString(), mapArgs.value("__counterId").toString());
+
+            if(oneLineSett.command == 0xFFFF){
+//currently only telegram is supported,
+                //check __path
+
+                emit sendAMessageDevMap(map, "telegram");
+            }else
+                emit sendCommand2pollDevMap(oneLineSett.command, map);
+
+            continue;
+        }
+
+        if(verboseMode)
+            qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice send str " << oneLineSett.command << oneLineSett.line ;
+
+        emit sendCommand2pollDevStr(oneLineSett.command, oneLineSett.line);
+    }
+    return cntr;
 }
 
 //----------------------------------------------------------------------------------------

@@ -35,14 +35,31 @@ signals:
 
     void sendAMessageDevMap(QVariantMap mapArgs, QString messageClientName);
 
+    void addThisDHEvent(QString ruleName, int cntr, QString ruleLine, QString devId, QString additioanlDevId);
+
+
     //status of a messaga
     void onThisCommandFailed(QString ruleNameId, QString counterId);
+
+
+    //to dh processor from
+    void testThisRule(QString ruleName, QVariantHash oneRule);
+
+    void resetThisRule(QString ruleName);
 
 
     void smartPingTheseHosts(QStringList hosts);
 
 
     void add2systemLogEvent(QString evnt);
+
+
+    //from IPC to messageSender
+    void smartPingTheseHostsResult(QString messagetag, bool ok, QString message);
+    //from messageSender
+    void smartPingTheseHosts(QStringList hosts, QString messagetag);//ask matilda-bbb iface manager to ping , in case of error restart eth0
+
+
 
 public slots:
     void saveAllYourData();

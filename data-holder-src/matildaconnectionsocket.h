@@ -24,6 +24,17 @@ signals:
 
     void append2log(QString message);
 
+
+    //to dh processor
+    void testThisRule(QString ruleName, QVariantHash oneRule);
+
+    void resetThisRule(QString ruleName);
+
+    //from IPC to messageSender
+    void smartPingTheseHostsResult(QString messagetag, bool ok, QString message);
+
+
+
 public slots:
     //for client side
 
@@ -32,6 +43,12 @@ public slots:
     void sendCommand2pollDevStr(quint16 pollCode, QString args);
 
     void sendCommand2pollDevMap(quint16 pollCode, QVariantMap mapArgs);
+
+
+
+        //from messageSender
+     void smartPingTheseHosts(QStringList hosts, QString messagetag);//ask matilda-bbb iface manager to ping , in case of error restart eth0
+
 
 
 
