@@ -63,7 +63,7 @@ void MatildaConnectionSocket::decodeReadData(const QVariant &dataVar, const quin
         //inData, rule reset
             const QVariantHash h = dataVar.toHash();
             //h.name - a rule name if empty all
-        emit resetThisRule(h.value("name").toString());
+        emit resetThisRules(h.value("names").toStringList());
         break;}
 
 

@@ -79,9 +79,9 @@ public slots:
 
 
     //to dh processor from IPC
-    void testThisRule(QString ruleName, QVariantHash oneRule);
+    void testThisRule(QString ruleName, QVariantHash oneRuleH);
 
-    void resetThisRule(QString ruleName);
+    void resetThisRules(QStringList ruleNames);
 
 private:
     int executeLines(const QList<MyExecuteLine> &commands2execute, const QString &devID, const QString &ruleNameLineKey, const QString &ruleCounterKey);

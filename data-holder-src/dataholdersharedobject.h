@@ -61,7 +61,7 @@ signals:
     //to dh processor from IPC
     void testThisRule(QString ruleName, QVariantHash oneRule);
 
-    void resetThisRule(QString ruleName);
+    void resetThisRules(QStringList ruleNames);
 
 
 

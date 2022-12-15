@@ -28,7 +28,7 @@ signals:
     //to dh processor
     void testThisRule(QString ruleName, QVariantHash oneRule);
 
-    void resetThisRule(QString ruleName);
+    void resetThisRules(QStringList ruleNames);
 
     //from IPC to messageSender
     void smartPingTheseHostsResult(QString messagetag, bool ok, QString message);

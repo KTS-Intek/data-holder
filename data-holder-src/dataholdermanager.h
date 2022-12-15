@@ -45,10 +45,8 @@ signals:
     //to dh processor from
     void testThisRule(QString ruleName, QVariantHash oneRule);
 
-    void resetThisRule(QString ruleName);
+    void resetThisRules(QStringList ruleNames);
 
-
-    void smartPingTheseHosts(QStringList hosts);
 
 
     void add2systemLogEvent(QString evnt);

@@ -23,7 +23,7 @@ public:
     QReadWriteLock myLock;
     bool verboseMode;
 
-    bool getPingAnswerIsReceived();
+    bool getPingAnswerIsWaiting();
     LastSmartPing getLastPingAnswer();
 
 signals:
@@ -44,12 +44,12 @@ public slots:
 
     void onRestartDhcp();
 
+    //from IPC to messageSender
+    void smartPingTheseHostsResult(QString messagetag, bool ok, QString message);//direct connection
 
 private:
     bool sendThis2telegramDevMap(const QVariantMap &mapArgs, const bool &silent);
 
-    //from IPC to messageSender
-    void smartPingTheseHostsResult(QString messagetag, bool ok, QString message);//direct connection
 
     void setLastReceived(QString messagetag, bool ok, QString message);
 

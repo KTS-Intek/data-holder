@@ -34,7 +34,7 @@ MyEventsRules DataHolderSharedObjectProcessor::fromHashMyEventsRules(const QVari
     std::sort(lk.begin(), lk.end());
 
 
-   auto hRulesCounterL = hRulesCounter;
+    auto hRulesCounterL = hRulesCounter;
     hRulesCounter.clear();//to remove missing rules
 
     for(int i = 0, imax = lk.size(); i < imax; i++){
@@ -121,8 +121,8 @@ QList<MyExecuteLine> DataHolderSharedObjectProcessor::fromStringList(const QStri
                 if(verboseMode){
                     qDebug() << "fromHashMyEventsRules script is found " << path2script <<  line.mid(indxFrom + 1);
 
-//                        const QUrl url(line.mid(indxFrom + 1));
-//                        const QString strArgs = url.toEncoded();
+                    //                        const QUrl url(line.mid(indxFrom + 1));
+                    //                        const QString strArgs = url.toEncoded();
 
                     qDebug() << "fromHashMyEventsRules script is found " << QUrl::toPercentEncoding(line.mid(indxFrom + 1));
 
@@ -158,11 +158,11 @@ QList<MyExecuteLine> DataHolderSharedObjectProcessor::fromStringList(const QStri
                     continue;
 
                 }
-//                    if(jdoc.isArray()){     do I really need it?
-//                        const QJsonArray array = jdoc.array();
+                //                    if(jdoc.isArray()){     do I really need it?
+                //                        const QJsonArray array = jdoc.array();
 
 
-//                    }
+                //                    }
             }
         }
         commands2execute.append(oneLineSett);
@@ -186,19 +186,19 @@ QHash<QString, QString> DataHolderSharedObjectProcessor::hdataFromOneRecord(cons
     out.insert("SN", oneRecord.additionalID);
     return out;
 
-//    struct DHMsecRecord
-//    {
-//        qint64 msec;
-//        QString additionalID;
+    //    struct DHMsecRecord
+    //    {
+    //        qint64 msec;
+    //        QString additionalID;
 
-//        QVariantHash hash;
-//        QString srcname;
-//        bool wasRestored;
+    //        QVariantHash hash;
+    //        QString srcname;
+    //        bool wasRestored;
 
-//        DHMsecRecord() : msec(0), wasRestored(false) {}
+    //        DHMsecRecord() : msec(0), wasRestored(false) {}
 
-//        DHMsecRecord(const qint64 &msec, const QString &additionalID, const QVariantHash &hash, const QString &srcname, const bool &wasRestored)
-//            : msec(msec), additionalID(additionalID), hash(hash), srcname(srcname), wasRestored(wasRestored) {}
+    //        DHMsecRecord(const qint64 &msec, const QString &additionalID, const QVariantHash &hash, const QString &srcname, const bool &wasRestored)
+    //            : msec(msec), additionalID(additionalID), hash(hash), srcname(srcname), wasRestored(wasRestored) {}
     //    };
 }
 
@@ -282,7 +282,7 @@ void DataHolderSharedObjectProcessor::createLinesIterator()
     connect(iterator, &MyLinesInterpretator::gimmeThisAdditionalDevIDData   , this, &DataHolderSharedObjectProcessor::gimmeThisAdditionalDevIDData  );
 
 
-   //to iterator
+    //to iterator
     connect(this, &DataHolderSharedObjectProcessor::setThisDevIDData            , iterator, &MyLinesInterpretator::setThisDevIDData             );
     connect(this, &DataHolderSharedObjectProcessor::setThisAdditionalDevIDData  , iterator, &MyLinesInterpretator::setThisAdditionalDevIDData   );
 
@@ -313,7 +313,7 @@ void DataHolderSharedObjectProcessor::checkThisDevice(const quint16 &pollCode, c
 
     const auto listOneCode = lastRules.value(pollCode);
 
-//    QStringList removeBrokenRules;
+    //    QStringList removeBrokenRules;
 
     auto hdata = hdataFromOneRecord(devID, oneRecord);
 
@@ -335,7 +335,7 @@ void DataHolderSharedObjectProcessor::checkThisDevice(const quint16 &pollCode, c
         if(out.isEmpty()){
             if(verboseMode)
                 qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice " << out << errorList << oneRule.ruleLine;
-//            removeBrokenRules.append(oneRule.ruleLine);
+            //            removeBrokenRules.append(oneRule.ruleLine);
 
             emit append2log(tr("Bad rule %1, %2, %3").arg(oneRule.ruleName).arg(oneRule.ruleLine).arg(errorList.join("\n").left(800)));
             continue;
@@ -366,7 +366,7 @@ void DataHolderSharedObjectProcessor::checkThisDevice(const quint16 &pollCode, c
             continue;//stop execution of the rule
         }
 
-//        void addThisDHEvent(QString ruleName, int cntr, QString ruleLine, QString devId, QString additioanlDevId);
+        //        void addThisDHEvent(QString ruleName, int cntr, QString ruleLine, QString devId, QString additioanlDevId);
         emit addThisDHEvent(oneRule.ruleName, ruleCounter, oneRule.ruleLine, devID, oneRecord.additionalID);
 
 
@@ -395,15 +395,15 @@ void DataHolderSharedObjectProcessor::checkThisDevice(const quint16 &pollCode, c
 
 void DataHolderSharedObjectProcessor::onThisCommandFailed(QString ruleNameId, QString counterId)
 {
-//    const QString ruleNameLineKey = getHRulesCounterKey(oneRule);
+    //    const QString ruleNameLineKey = getHRulesCounterKey(oneRule);
 
     if(ruleNameId.isEmpty()){
-        addThisDHEvent();
-        return;//test conditions
+
+        return;//test conditions have all necessary ids
     }
 
     auto ruleCounterHash = hRulesCounter.value(ruleNameId) ;
-//    const QString ruleCounterKey = QString("%1\n%2\n%3").arg(int(pollCode)).arg(devID).arg(oneRecord.additionalID);
+    //    const QString ruleCounterKey = QString("%1\n%2\n%3").arg(int(pollCode)).arg(devID).arg(oneRecord.additionalID);
 
 
     auto ruleCounter = ruleCounterHash.value(counterId, 0);
@@ -425,39 +425,59 @@ void DataHolderSharedObjectProcessor::onThisCommandFailed(QString ruleNameId, QS
 
 //----------------------------------------------------------------------------------------
 
-void DataHolderSharedObjectProcessor::testThisRule(QString ruleName, QVariantHash oneRule)
+void DataHolderSharedObjectProcessor::testThisRule(QString ruleName, QVariantHash oneRuleH)
 {
-//execute the rule command
-    const auto commands2execute = fromStringList(oneRule.value("c").toStringList());
+    //execute the rule command
+    const auto commands2execute = fromStringList(oneRuleH.value("c").toStringList());
 
     if(commands2execute.isEmpty()){
-
         emit append2log(tr("Nothing to execute"));
         return;
     }
-    const auto variables = oneRule.value("v").toHash();
+    const auto variables = oneRuleH.value("v").toHash();
 
     const QString devID = variables.value("NI").toString();
     const QString additionalID = variables.value("SN").toString();
 
 
+    MyRuleSettings oneRule;
+    oneRule.ruleName = ruleName;
+    oneRule.ruleLine = "test";
+
     //        void addThisDHEvent(QString ruleName, int cntr, QString ruleLine, QString devId, QString additioanlDevId);
-    emit addThisDHEvent(oneRule.ruleName, ruleCounter, oneRule.ruleLine, devID, oneRecord.additionalID);
 
 
 
+    emit addThisDHEvent(oneRule.ruleName, 0, "test", devID, additionalID);
+
+
+
+    const QString ruleNameLineKey = getHRulesCounterKey(oneRule);
+    const QString ruleCounterKey = QString("%1\n%2\n%3").arg("0").arg(devID).arg(additionalID);
 
     const int cntr = executeLines(commands2execute, devID, ruleNameLineKey, ruleCounterKey);
+
+    if(verboseMode)
+        qDebug() << "DataHolderSharedObjectProcessor::testThisRule send str " << cntr << oneRule.ruleName << oneRule.ruleLine;
 
 }
 
 //----------------------------------------------------------------------------------------
 
-void DataHolderSharedObjectProcessor::resetThisRule(QString ruleName)
+void DataHolderSharedObjectProcessor::resetThisRules(QStringList ruleNames)
 {
-    if(ruleName.isEmpty()){
-        hRulesCounter.clear();
-    }else{
+    if(ruleNames.isEmpty() || hRulesCounter.isEmpty())
+        return;
+
+
+    for(int i = 0, imax = ruleNames.size(); i < imax; i++){
+        const auto ruleName = ruleNames.at(i);
+
+        if(ruleName.isEmpty()){
+            hRulesCounter.clear();
+            return;
+        }
+
         const auto lk = hRulesCounter.keys();
         for(int i = 0, imax = lk.size(); i < imax; i++){
             if(getHRuleNameFromTheKey(lk.at(i)) == ruleName){
@@ -465,6 +485,7 @@ void DataHolderSharedObjectProcessor::resetThisRule(QString ruleName)
             }
         }
     }
+
 }
 
 //----------------------------------------------------------------------------------------
@@ -494,7 +515,7 @@ int DataHolderSharedObjectProcessor::executeLines(const QList<MyExecuteLine> &co
             //        emit onThisCommandFailed(mapArgs.value("__ruleNameId").toString(), mapArgs.value("__counterId").toString());
 
             if(oneLineSett.command == 0xFFFF){
-//currently only telegram is supported,
+                //currently only telegram is supported,
                 //check __path
 
                 emit sendAMessageDevMap(map, "telegram");

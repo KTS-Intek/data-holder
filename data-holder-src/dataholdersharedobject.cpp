@@ -130,7 +130,7 @@ void DataHolderSharedObject::createDataProcessor()
     connect(dataProcessor, &DataHolderSharedObjectProcessor::addThisDHEvent, this, &DataHolderSharedObject::addThisDHEvent);
 
     connect(this, &DataHolderSharedObject::testThisRule, dataProcessor, &DataHolderSharedObjectProcessor::testThisRule);
-    connect(this, &DataHolderSharedObject::resetThisRule, dataProcessor, &DataHolderSharedObjectProcessor::resetThisRule);
+    connect(this, &DataHolderSharedObject::resetThisRules, dataProcessor, &DataHolderSharedObjectProcessor::resetThisRules);
 
 }
 

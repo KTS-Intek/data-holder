@@ -16,7 +16,7 @@ DataHolderMessageSender::DataHolderMessageSender(const bool &verboseMode, QObjec
 
 //-----------------------------------------------------------------------------------------
 
-bool DataHolderMessageSender::getPingAnswerIsReceived()
+bool DataHolderMessageSender::getPingAnswerIsWaiting()
 {
 
     QReadLocker locker(&myLock);
@@ -118,6 +118,15 @@ void DataHolderMessageSender::onRestartDhcp()
 
 //-----------------------------------------------------------------------------------------
 
+void DataHolderMessageSender::smartPingTheseHostsResult(QString messagetag, bool ok, QString message)
+{
+    setLastReceived(messagetag, ok, message);
+    //it is called from other thread
+}
+
+
+//-----------------------------------------------------------------------------------------
+
 bool DataHolderMessageSender::sendThis2telegramDevMap(const QVariantMap &mapArgs, const bool &silent)
 {
     //        QThread::sleep(5);
@@ -182,13 +191,6 @@ bool DataHolderMessageSender::sendThis2telegramDevMap(const QVariantMap &mapArgs
     return false;
 }
 
-//-----------------------------------------------------------------------------------------
-
-void DataHolderMessageSender::smartPingTheseHostsResult(QString messagetag, bool ok, QString message)
-{
-    setLastReceived(messagetag, ok, message);
-    //it is called from other thread
-}
 
 //-----------------------------------------------------------------------------------------
 
@@ -241,7 +243,7 @@ bool DataHolderMessageSender::startIPCPingTest(const QString &host)
 
     for(int i = 0; i < 1000 && time.elapsed() < 60000; i++){
         QThread::msleep(100);
-        if(getPingAnswerIsReceived() && getLastPingAnswer().messagetag == messagetag)
+        if(!getPingAnswerIsWaiting() && getLastPingAnswer().messagetag == messagetag)
             break;
     }
 
