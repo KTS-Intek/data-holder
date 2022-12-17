@@ -21,7 +21,10 @@ public:
 
     MyMethodsParamsList availableMethods;
 
-    MyEventsRules lastRules;
+    MyEventsRules lastPollRules; //pollcodes != 0
+
+    MyEventsRules lastSystemRules; //pollcode = 0
+
 
     QStringList listRulesWithErrors;
 
@@ -32,8 +35,12 @@ public:
 
     QList<MyExecuteLine> fromStringList(const QStringList &commands2executeStrList);
 
+    QHash<QString,QString> hdataFromVarHash(const QVariantHash &hash);
 
      QHash<QString,QString> hdataFromOneRecord(const QString &devID, const DHMsecRecord &oneRecord);
+
+     QHash<QString,QString> hdataFromOnePayload(const QString &who, const QString &evntType, const QVariantHash &payload);
+
 
      QString getHRulesCounterKey(const MyRuleSettings &ruleSett);
 
@@ -50,7 +57,7 @@ signals:
 
      void sendAMessageDevMap(QVariantMap mapArgs, QString messageClientName);
 
-     void addThisDHEvent(QString ruleName, int cntr, QString ruleLine, QString devId, QString additioanlDevId);
+     void addThisDHEvent(QString ruleName, int cntr, quint16 pollCode, QString ruleLine, QString devId, QString additioanlDevId);
 
 
 
@@ -72,6 +79,8 @@ public slots:
 
     void setEventManagerRules(QVariantHash hashRules);
 
+    void checkThisDeviceNoData(const quint16 &pollCode, const QString &devID, const DHMsecRecord &oneRecord);
+
     void checkThisDevice(const quint16 &pollCode, const QString &devID, const DHMsecRecord &oneRecord);
 
 
@@ -82,6 +91,12 @@ public slots:
     void testThisRule(QString ruleName, QVariantHash oneRuleH);
 
     void resetThisRules(QStringList ruleNames);
+
+    void smartSystemEvent(QString who, QString evntType, QVariantHash payload);//who app name, evntType logIn,logOut,authFail,appRestart,gsmMoney...
+
+
+    void smartEvntProcessor(const QString &devIdWho, const QString &additionalIdEvntType, const quint16 &pollCode, const MyRuleSettingsList &listOneCode, QHash<QString,QString> &hdata);
+
 
 private:
     int executeLines(const QList<MyExecuteLine> &commands2execute, const QString &devID, const QString &ruleNameLineKey, const QString &ruleCounterKey);

@@ -7,12 +7,13 @@ DataHolderAppLogs::DataHolderAppLogs(const QString &sharedMemoName, const QStrin
 
 }
 
-void DataHolderAppLogs::addThisDHEvent(QString ruleName, int cntr, QString ruleLine, QString devId, QString additioanlDevId)
+void DataHolderAppLogs::addThisDHEvent(QString ruleName, int cntr, quint16 pollCode, QString ruleLine, QString devId, QString additioanlDevId)
 {
     QStringList l;
 //    l.append(QDateTime::currentMSecsSinceEpoch());
     l.append(ruleName);
     l.append(QString::number(cntr));
+    l.append(QString::number(pollCode));
     l.append(ruleLine);
     l.append(devId);
     l.append(additioanlDevId);

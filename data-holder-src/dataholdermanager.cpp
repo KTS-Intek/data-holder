@@ -193,14 +193,12 @@ void DataHolderManager::createSharedTableObject()
     connect(dhData, &DataHolderSharedObject::sendCommand2pollDevStr , this, &DataHolderManager::sendCommand2pollDevStr);
     connect(dhData, &DataHolderSharedObject::sendAMessageDevMap     , this, &DataHolderManager::sendAMessageDevMap);
 
-    connect(this, &DataHolderManager::onThisCommandFailed, dhData, &DataHolderSharedObject::onThisCommandFailed);
 
 
     connect(dhData, &DataHolderSharedObject::append2log, this, &DataHolderManager::append2log);
     connect(dhData, &DataHolderSharedObject::addThisDHEvent, this, &DataHolderManager::addThisDHEvent);
 
-    connect(this, &DataHolderManager::testThisRule, dhData, &DataHolderSharedObject::testThisRule);
-    connect(this, &DataHolderManager::resetThisRules, dhData, &DataHolderSharedObject::resetThisRules);
+
 }
 
 //---------------------------------------------------------------------------------------
@@ -296,8 +294,10 @@ void DataHolderManager::createMatildaLocalSocket()
 //    void smartPingTheseHosts(QStringList hosts, QString messagetag);//ask matilda-bbb iface manager to ping , in case of error restart eth0
 
 
-    connect(extSocket, &MatildaConnectionSocket::testThisRule, this, &DataHolderManager::testThisRule);
-    connect(extSocket, &MatildaConnectionSocket::resetThisRules, this, &DataHolderManager::resetThisRules);
+    connect(extSocket, &MatildaConnectionSocket::testThisRule       , dhData, &DataHolderSharedObject::testThisRule     );
+    connect(extSocket, &MatildaConnectionSocket::resetThisRules     , dhData, &DataHolderSharedObject::resetThisRules   );
+    connect(extSocket, &MatildaConnectionSocket::smartSystemEvent   , dhData, &DataHolderSharedObject::smartSystemEvent );
+
 
     extSocketThrd->start();
 
@@ -317,7 +317,8 @@ void DataHolderManager::createMessageSender()
     connect(t, SIGNAL(finished()), t, SLOT(deleteLater()));
 
     connect(messanger, &DataHolderMessageSender::append2log         , this, &DataHolderManager::append2log          );
-    connect(messanger, &DataHolderMessageSender::onThisCommandFailed, this, &DataHolderManager::onThisCommandFailed );
+    connect(messanger, &DataHolderMessageSender::onThisCommandFailed, dhData, &DataHolderSharedObject::onThisCommandFailed );
+
 
     connect(this, &DataHolderManager::sendAMessageDevMap    , messanger, &DataHolderMessageSender::sendAMessageDevMap);
 

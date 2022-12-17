@@ -35,18 +35,7 @@ signals:
 
     void sendAMessageDevMap(QVariantMap mapArgs, QString messageClientName);
 
-    void addThisDHEvent(QString ruleName, int cntr, QString ruleLine, QString devId, QString additioanlDevId);
-
-
-    //status of a messaga
-    void onThisCommandFailed(QString ruleNameId, QString counterId);
-
-
-    //to dh processor from
-    void testThisRule(QString ruleName, QVariantHash oneRule);
-
-    void resetThisRules(QStringList ruleNames);
-
+    void addThisDHEvent(QString ruleName, int cntr, quint16 pollCode, QString ruleLine, QString devId, QString additioanlDevId);
 
 
     void add2systemLogEvent(QString evnt);
@@ -57,6 +46,7 @@ signals:
     //from messageSender
     void smartPingTheseHosts(QStringList hosts, QString messagetag);//ask matilda-bbb iface manager to ping , in case of error restart eth0
 
+    void smartSystemEvent(QString who, QString evntType, QVariantHash payload);//who app name, evntType logIn,logOut,authFail,appRestart,gsmMoney...
 
 
 public slots:

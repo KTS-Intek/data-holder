@@ -40,6 +40,15 @@ void MatildaConnectionSocket::decodeReadData(const QVariant &dataVar, const quin
     //           emit command4dev(dataVar.toHash().value("c").toUInt(), dataVar.toHash().value("d").toString());
     //           break;}
 
+    case MTD_EXT_COMMAND_2_DHP_SYSEVNTS:{
+
+        const QVariantHash h = dataVar.toHash();
+        if(!h.isEmpty() && !h.value("who").toString().isEmpty())
+            emit smartSystemEvent(h.value("who").toString(), h.value("evntType").toString(), h.value("payload").toHash());//who app name, evntType logIn,logOut,authFail,appRestart,gsmMoney...
+
+
+        break;}
+
     case MTD_EXT_COMMAND_2_SMARTPING:{
         const QVariantHash h = dataVar.toHash();
 //        h.insert("messagetag", messagetag);
@@ -65,6 +74,8 @@ void MatildaConnectionSocket::decodeReadData(const QVariant &dataVar, const quin
             //h.name - a rule name if empty all
         emit resetThisRules(h.value("names").toStringList());
         break;}
+
+
 
 
     default: {

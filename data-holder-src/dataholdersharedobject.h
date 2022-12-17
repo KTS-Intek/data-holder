@@ -52,7 +52,7 @@ signals:
 
     void sendAMessageDevMap(QVariantMap mapArgs, QString messageClientName);
 
-    void addThisDHEvent(QString ruleName, int cntr, QString ruleLine, QString devId, QString additioanlDevId);
+    void addThisDHEvent(QString ruleName, int cntr, quint16 pollCode, QString ruleLine, QString devId, QString additioanlDevId);
 
 
     void onThisCommandFailed(QString ruleNameId, QString counterId);
@@ -62,6 +62,8 @@ signals:
     void testThisRule(QString ruleName, QVariantHash oneRule);
 
     void resetThisRules(QStringList ruleNames);
+
+    void smartSystemEvent(QString who, QString evntType, QVariantHash payload);//who app name, evntType logIn,logOut,authFail,appRestart,gsmMoney...
 
 
 
@@ -75,6 +77,8 @@ signals:
 
 public slots:
     void createDataProcessor();
+
+//    void checkThisDevNoAnswer(quint16 pollCode, QString devID, QString additionalID, qint64 msec, QString srcname);
 
     void addRecord(quint16 pollCode, QString devID, QString additionalID, qint64 msec, QVariantHash hash, QString srcname);
 

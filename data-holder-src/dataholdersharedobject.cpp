@@ -129,10 +129,18 @@ void DataHolderSharedObject::createDataProcessor()
     connect(dataProcessor, &DataHolderSharedObjectProcessor::append2log, this, &DataHolderSharedObject::append2log);
     connect(dataProcessor, &DataHolderSharedObjectProcessor::addThisDHEvent, this, &DataHolderSharedObject::addThisDHEvent);
 
-    connect(this, &DataHolderSharedObject::testThisRule, dataProcessor, &DataHolderSharedObjectProcessor::testThisRule);
-    connect(this, &DataHolderSharedObject::resetThisRules, dataProcessor, &DataHolderSharedObjectProcessor::resetThisRules);
+    connect(this, &DataHolderSharedObject::testThisRule     , dataProcessor, &DataHolderSharedObjectProcessor::testThisRule);
+    connect(this, &DataHolderSharedObject::resetThisRules   , dataProcessor, &DataHolderSharedObjectProcessor::resetThisRules);
+    connect(this, &DataHolderSharedObject::smartSystemEvent , dataProcessor, &DataHolderSharedObjectProcessor::smartSystemEvent);
 
 }
+
+//----------------------------------------------------------------------------
+
+//void DataHolderSharedObject::checkThisDevNoAnswer(quint16 pollCode, QString devID, QString additionalID, qint64 msec, QString srcname)
+//{
+
+//}
 
 //----------------------------------------------------------------------------
 

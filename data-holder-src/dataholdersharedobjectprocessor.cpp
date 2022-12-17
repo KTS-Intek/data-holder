@@ -67,7 +67,7 @@ MyEventsRules DataHolderSharedObjectProcessor::fromHashMyEventsRules(const QVari
         MyRuleSettingsList l = out.value(pollCode);
         l.append(oneRule);
 
-        out.insert(pollCode, l);
+        out.insert(pollCode, l);//0 - system events
     }
 
     return out;
@@ -172,15 +172,22 @@ QList<MyExecuteLine> DataHolderSharedObjectProcessor::fromStringList(const QStri
 
 //----------------------------------------------------------------------------------------
 
-QHash<QString, QString> DataHolderSharedObjectProcessor::hdataFromOneRecord(const QString &devID, const DHMsecRecord &oneRecord)
+QHash<QString, QString> DataHolderSharedObjectProcessor::hdataFromVarHash(const QVariantHash &hash)
 {
     QHash<QString, QString> out;
-
-    const auto lk = oneRecord.hash.keys();
-
+    const auto lk = hash.keys();
     for(int i = 0, imax = lk.size(); i < imax; i++){
-        out.insert(lk.at(i), oneRecord.hash.value(lk.at(i)).toString());
+        out.insert(lk.at(i), hash.value(lk.at(i)).toString());
     }
+    return out;
+}
+
+//----------------------------------------------------------------------------------------
+
+QHash<QString, QString> DataHolderSharedObjectProcessor::hdataFromOneRecord(const QString &devID, const DHMsecRecord &oneRecord)
+{
+    QHash<QString, QString> out = hdataFromVarHash(oneRecord.hash);
+
 
     out.insert("NI", devID);
     out.insert("SN", oneRecord.additionalID);
@@ -200,6 +207,16 @@ QHash<QString, QString> DataHolderSharedObjectProcessor::hdataFromOneRecord(cons
     //        DHMsecRecord(const qint64 &msec, const QString &additionalID, const QVariantHash &hash, const QString &srcname, const bool &wasRestored)
     //            : msec(msec), additionalID(additionalID), hash(hash), srcname(srcname), wasRestored(wasRestored) {}
     //    };
+}
+
+//----------------------------------------------------------------------------------------
+
+QHash<QString, QString> DataHolderSharedObjectProcessor::hdataFromOnePayload(const QString &who, const QString &evntType, const QVariantHash &payload)
+{
+    QHash<QString, QString> out = hdataFromVarHash(payload);
+    out.insert("who", who);
+    out.insert("evntType", evntType);
+    return out;
 }
 
 //----------------------------------------------------------------------------------------
@@ -294,7 +311,19 @@ void DataHolderSharedObjectProcessor::createLinesIterator()
 void DataHolderSharedObjectProcessor::setEventManagerRules(QVariantHash hashRules)
 {
 
-    lastRules = fromHashMyEventsRules(hashRules);
+    MyEventsRules lastRules = fromHashMyEventsRules(hashRules);
+
+    lastPollRules.clear();
+    lastSystemRules.clear();
+
+    if(lastRules.contains(0)){
+        lastSystemRules.insert(0, lastRules.take(0));
+
+        //start system checker
+    }
+    lastPollRules = lastRules;
+
+
 
     availableMethods = MyMathHelper::gimmeMethods();
 
@@ -303,90 +332,32 @@ void DataHolderSharedObjectProcessor::setEventManagerRules(QVariantHash hashRule
 
 //----------------------------------------------------------------------------------------
 
+void DataHolderSharedObjectProcessor::checkThisDeviceNoData(const quint16 &pollCode, const QString &devID, const DHMsecRecord &oneRecord)
+{
+    //when there is no data for long time, max 7 days
+
+
+}
+
+//----------------------------------------------------------------------------------------
+
 void DataHolderSharedObjectProcessor::checkThisDevice(const quint16 &pollCode, const QString &devID, const DHMsecRecord &oneRecord)
 {
-    if(lastRules.isEmpty())
+    //it checks only devices after answer,
+    if(lastPollRules.isEmpty())
         return; //no rules , so take a rest
 
-    if(!lastRules.contains(pollCode))
+    if(!lastPollRules.contains(pollCode))
         return;//ignore this poll code
 
-    const auto listOneCode = lastRules.value(pollCode);
+//    const auto listOneCode = lastPollRules.value(pollCode);
 
     //    QStringList removeBrokenRules;
 
     auto hdata = hdataFromOneRecord(devID, oneRecord);
 
-    for(int i = 0, imax = listOneCode.size(); i < imax; i++){
-        const auto oneRule = listOneCode.at(i);
-        const QString ruleNameLineKey = getHRulesCounterKey(oneRule);
+    smartEvntProcessor(who, evntType, pollCode, lastPollRules.value(pollCode), hdata);
 
-        auto ruleCounterHash = hRulesCounter.value(ruleNameLineKey) ;
-        const QString ruleCounterKey = QString("%1\n%2\n%3").arg(int(pollCode)).arg(devID).arg(oneRecord.additionalID);
-
-
-        auto ruleCounter = ruleCounterHash.value(ruleCounterKey, 0);
-
-        hdata.insert("counter", QString::number(ruleCounter));
-
-        QStringList errorList;
-        const QString out = iterator->gimmeTheFunctionResult(oneRule.ruleLine, availableMethods, hdata, errorList);
-
-        if(out.isEmpty()){
-            if(verboseMode)
-                qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice " << out << errorList << oneRule.ruleLine;
-            //            removeBrokenRules.append(oneRule.ruleLine);
-
-            emit append2log(tr("Bad rule %1, %2, %3").arg(oneRule.ruleName).arg(oneRule.ruleLine).arg(errorList.join("\n").left(800)));
-            continue;
-        }
-
-
-
-        //ok if everything is fine
-
-        if(out.toInt() == 0){
-            if(verboseMode)
-                qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice ruleCounter reset" << ruleCounter << oneRule.limitExecutions << oneRule.ruleLine << oneRule.ruleName << ruleCounterKey;
-
-            if(ruleCounterHash.value(ruleCounterKey, 0) > 0){
-                emit append2log(tr("rule reset counter %1, %2").arg(oneRule.ruleName).arg(ruleCounter));
-
-                ruleCounterHash.insert(ruleCounterKey, 0);
-                hRulesCounter.insert(ruleNameLineKey, ruleCounterHash);//reset the counter
-            }
-
-            continue; //
-
-        }
-
-        ruleCounter++;
-
-        if(oneRule.limitExecutions > 0 && oneRule.limitExecutions < ruleCounter){
-            continue;//stop execution of the rule
-        }
-
-        //        void addThisDHEvent(QString ruleName, int cntr, QString ruleLine, QString devId, QString additioanlDevId);
-        emit addThisDHEvent(oneRule.ruleName, ruleCounter, oneRule.ruleLine, devID, oneRecord.additionalID);
-
-
-        ruleCounterHash.insert(ruleCounterKey, ruleCounter);
-
-        hRulesCounter.insert(ruleNameLineKey, ruleCounterHash);
-
-        emit append2log(tr("rule accepted counter %1, %2").arg(oneRule.ruleName).arg(ruleCounter));
-
-
-        if(verboseMode)
-            qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice ruleCounter" << ruleCounter << oneRule.limitExecutions << oneRule.ruleLine << oneRule.ruleName << ruleCounterKey;
-
-
-        const int cntr = executeLines(oneRule.commands2execute, devID, ruleNameLineKey, ruleCounterKey);
-
-
-        if(verboseMode)
-            qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice send str " << cntr << oneRule.ruleName << oneRule.ruleLine;
-    }
 
 
 }
@@ -436,8 +407,9 @@ void DataHolderSharedObjectProcessor::testThisRule(QString ruleName, QVariantHas
     }
     const auto variables = oneRuleH.value("v").toHash();
 
-    const QString devID = variables.value("NI").toString();
-    const QString additionalID = variables.value("SN").toString();
+    const QString devID = variables.value("NI").toString(); //who or IN
+    const QString additionalID = variables.value("SN").toString(); //evntType or SN
+    const quint16 pollCode = variables.value("code", 0).toUInt(); //pollCode or 0 - system event
 
 
     MyRuleSettings oneRule;
@@ -448,7 +420,7 @@ void DataHolderSharedObjectProcessor::testThisRule(QString ruleName, QVariantHas
 
 
 
-    emit addThisDHEvent(oneRule.ruleName, 0, "test", devID, additionalID);
+    emit addThisDHEvent(oneRule.ruleName, 0, pollCode, "test", devID, additionalID);
 
 
 
@@ -484,6 +456,120 @@ void DataHolderSharedObjectProcessor::resetThisRules(QStringList ruleNames)
                 hRulesCounter.remove(lk.at(i));
             }
         }
+    }
+
+}
+
+//----------------------------------------------------------------------------------------
+
+void DataHolderSharedObjectProcessor::smartSystemEvent(QString who, QString evntType, QVariantHash payload)
+{
+    if(lastSystemRules.isEmpty())
+        return;
+
+/*
+ * variables
+ * who
+ *  - matilda-bbb
+ *  - zbyrator-bbb
+ *  - peredavator-bbb
+ *  - firefly-bbb
+ *  - matilda-uart
+ *  - clock: dtEvnt
+ *
+ *  evntType
+ *      - logIn : msec, usr, ip, lvl
+ *      - logOut: msec, usr, ip, lvl
+ *      - authFail: msec, usr, ip
+ *      - appStart: msec
+ *      - dtEvnt: msec
+ *      - gsmMoney - msec, USSD answer when money was checked
+ *      - embInfo - msec, ch: main or others,
+ *
+ *
+ */
+//    const auto listOneCode = lastSystemRules.value(0);//keep this compatibility
+
+    auto hdata = hdataFromOnePayload(who, evntType, payload);
+    smartEvntProcessor(who, evntType, 0, lastSystemRules.value(0), hdata);
+
+
+}
+
+//----------------------------------------------------------------------------------------
+
+void DataHolderSharedObjectProcessor::smartEvntProcessor(const QString &devIdWho, const QString &additionalIdEvntType, const quint16 &pollCode, const MyRuleSettingsList &listOneCode, QHash<QString, QString> &hdata)
+{
+
+    for(int i = 0, imax = listOneCode.size(); i < imax; i++){
+        const auto oneRule = listOneCode.at(i);
+        const QString ruleNameLineKey = getHRulesCounterKey(oneRule);
+
+        auto ruleCounterHash = hRulesCounter.value(ruleNameLineKey) ;
+        const QString ruleCounterKey = QString("%1\n%2\n%3").arg(int(pollCode)).arg(devIdWho).arg(additionalIdEvntType);
+
+
+        auto ruleCounter = ruleCounterHash.value(ruleCounterKey, 0);
+
+        hdata.insert("counter", QString::number(ruleCounter));
+
+        QStringList errorList;
+        const QString out = iterator->gimmeTheFunctionResult(oneRule.ruleLine, availableMethods, hdata, errorList);
+
+        if(out.isEmpty()){
+            if(verboseMode)
+                qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice " << out << errorList << oneRule.ruleLine;
+            //            removeBrokenRules.append(oneRule.ruleLine);
+
+            emit append2log(tr("Bad rule %1, %2, %3").arg(oneRule.ruleName).arg(oneRule.ruleLine).arg(errorList.join("\n").left(800)));
+            continue;
+        }
+
+
+
+        //ok if everything is fine
+
+        if(out.toInt() == 0){
+            if(verboseMode)
+                qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice ruleCounter reset" << ruleCounter << oneRule.limitExecutions << oneRule.ruleLine << oneRule.ruleName << ruleCounterKey;
+
+            if(ruleCounterHash.value(ruleCounterKey, 0) > 0){
+                emit append2log(tr("rule reset counter %1, %2").arg(oneRule.ruleName).arg(ruleCounter));
+
+                ruleCounterHash.insert(ruleCounterKey, 0);
+                hRulesCounter.insert(ruleNameLineKey, ruleCounterHash);//reset the counter
+            }
+
+            continue; //
+
+        }
+
+        ruleCounter++;
+
+        if(oneRule.limitExecutions > 0 && oneRule.limitExecutions < ruleCounter){
+            continue;//stop execution of the rule
+        }
+
+        //        void addThisDHEvent(QString ruleName, int cntr, QString ruleLine, QString devId, QString additioanlDevId);
+        emit addThisDHEvent(oneRule.ruleName, ruleCounter, pollCode, oneRule.ruleLine, devIdWho, additionalIdEvntType);
+
+
+        ruleCounterHash.insert(ruleCounterKey, ruleCounter);
+
+        hRulesCounter.insert(ruleNameLineKey, ruleCounterHash);
+
+        emit append2log(tr("rule accepted counter %1, %2").arg(oneRule.ruleName).arg(ruleCounter));
+
+
+        if(verboseMode)
+            qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice ruleCounter" << ruleCounter << oneRule.limitExecutions << oneRule.ruleLine << oneRule.ruleName << ruleCounterKey;
+
+
+        const int cntr = executeLines(oneRule.commands2execute, devIdWho, ruleNameLineKey, ruleCounterKey);
+
+
+        if(verboseMode)
+            qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice send str " << cntr << oneRule.ruleName << oneRule.ruleLine;
     }
 
 }
