@@ -43,14 +43,14 @@ public:
 signals:
     void onDataTableChanged();
 
-    void setEventManagerRules(QVariantHash hashRules);
+    void setEventManagerRules(QVariantHash hashRules, QVariantHash hashProfiles);
 
 
     void sendCommand2pollDevStr(quint16 pollCode, QString args);
 
     void sendCommand2pollDevMap(quint16 pollCode, QVariantMap mapArgs);
 
-    void sendAMessageDevMap(QVariantMap mapArgs, QString messageClientName);
+    void sendAMessageDevMap(QVariantMap mapArgs);
 
     void addThisDHEvent(QString ruleName, int cntr, quint16 pollCode, QString ruleLine, QString devId, QString additioanlDevId);
 
@@ -64,6 +64,7 @@ signals:
     void resetThisRules(QStringList ruleNames);
 
     void smartSystemEvent(QString who, QString evntType, QVariantHash payload);//who app name, evntType logIn,logOut,authFail,appRestart,gsmMoney...
+    void sendTestMessage(QString profName, QVariantHash oneProf);
 
 
 

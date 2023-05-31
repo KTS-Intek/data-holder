@@ -40,7 +40,8 @@ signals:
 public slots:
     void onThreadStarted();
 
-    void sendAMessageDevMap(QVariantMap mapArgs, QString messageClientName);
+
+    void sendAMessageDevMap(QVariantMap mapArgs);
 
     void onRestartDhcp();
 
@@ -48,7 +49,7 @@ public slots:
     void smartPingTheseHostsResult(QString messagetag, bool ok, QString message);//direct connection
 
 private:
-    bool sendThis2telegramDevMap(const QVariantMap &mapArgs, const bool &silent);
+    bool sendThisDevMap(const QVariantMap &mapArgs, const bool &silent);
 
 
     void setLastReceived(QString messagetag, bool ok, QString message);
@@ -72,14 +73,14 @@ private:
     struct MessageSenderState
     {
 
-        quint16 telegramFailedSendCounter;
+        quint16 evntMessangerFailedSendCounter;
 
         //multi thread access
         bool isWaiting4pingAnswer;
         LastSmartPing lastPing;
 
         quint16 ipcPingRoundCounter;
-        MessageSenderState() : telegramFailedSendCounter(0), isWaiting4pingAnswer(false), ipcPingRoundCounter(0) {}
+        MessageSenderState() : evntMessangerFailedSendCounter(0), isWaiting4pingAnswer(false), ipcPingRoundCounter(0) {}
     } myState;
 
 

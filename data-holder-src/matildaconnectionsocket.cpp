@@ -76,6 +76,15 @@ void MatildaConnectionSocket::decodeReadData(const QVariant &dataVar, const quin
         break;}
 
 
+    case MTD_EXT_CUSTOM_COMMAND_2:{
+        //inData, rule reset
+            const QVariantHash h = dataVar.toHash();
+            //h.name - a rule name if empty all
+
+//            qDebug() << "MTD_EXT_CUSTOM_COMMAND_2 " << h;
+
+            emit sendTestMessage(h.value("name").toString(), h.value("prof").toHash());
+        break;}
 
 
     default: {

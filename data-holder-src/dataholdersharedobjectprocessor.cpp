@@ -18,7 +18,7 @@ DataHolderSharedObjectProcessor::DataHolderSharedObjectProcessor(const bool &ver
 
 //----------------------------------------------------------------------------------------
 
-MyEventsRules DataHolderSharedObjectProcessor::fromHashMyEventsRules(const QVariantHash &h)
+MyEventsRules DataHolderSharedObjectProcessor::fromHashMyEventsRules(const QVariantHash &h, const QVariantHash &hashProfiles)
 {
     //    ui->plainTextEdit_2->appendPlainText(tr("Out is - '%1'").arg(out));
 
@@ -27,6 +27,8 @@ MyEventsRules DataHolderSharedObjectProcessor::fromHashMyEventsRules(const QVari
     //    oneh.insert("c", oneRule.commands2execute);
     //    oneh.insert("pc", oneRule.pollCode);
     //    h.insert(ruleName, oneh);
+
+    lastMapProfiles = fromSendMessageProfileMap(hashProfiles);
 
     MyEventsRules out;
     auto lk = h.keys();
@@ -57,7 +59,7 @@ MyEventsRules DataHolderSharedObjectProcessor::fromHashMyEventsRules(const QVari
         if(hRulesCounterL.contains(getHRulesCounterKey(oneRule)))
             hRulesCounter.insert(getHRulesCounterKey(oneRule), hRulesCounterL.value(getHRulesCounterKey(oneRule)));
 
-        oneRule.commands2execute = fromStringList(commands2execute);
+        oneRule.commands2execute = fromStringList(commands2execute, lastMapProfiles);
 
 
         if(oneRule.commands2execute.isEmpty())
@@ -75,7 +77,34 @@ MyEventsRules DataHolderSharedObjectProcessor::fromHashMyEventsRules(const QVari
 
 //----------------------------------------------------------------------------------------
 
-QList<MyExecuteLine> DataHolderSharedObjectProcessor::fromStringList(const QStringList &commands2executeStrList)
+SendMessageProfileMap DataHolderSharedObjectProcessor::fromSendMessageProfileMap(const QVariantHash &hashProfiles)
+{
+    SendMessageProfileMap out;
+    const auto lk = hashProfiles.keys();
+    for(int i = 0, imax = lk.size(); i < imax; i++){
+        const QString name = lk.at(i);
+        const QVariantHash oneProf = hashProfiles.value(name).toHash();
+        if(oneProf.isEmpty())
+            continue;
+
+        SendMessageProfile onesett;
+        const quint16 type = oneProf.value("t").toUInt();
+
+        switch(type){
+        case 1: onesett.fPath2script = "/opt/matilda/script/telegram.sh"; break; //telegram
+        }
+
+        if(onesett.fPath2script.isEmpty())
+            continue;
+        onesett.args = oneProf.value("a").toString();
+        out.insert(name, onesett);
+    }
+    return out;
+}
+
+//----------------------------------------------------------------------------------------
+
+QList<MyExecuteLine> DataHolderSharedObjectProcessor::fromStringList(const QStringList &commands2executeStrList, const SendMessageProfileMap &mapProfiles)
 {
     QList<MyExecuteLine> commands2execute;
     for(int j = 0, jmax = commands2executeStrList.size(); j < jmax; j++){
@@ -98,47 +127,68 @@ QList<MyExecuteLine> DataHolderSharedObjectProcessor::fromStringList(const QStri
 
 
         if(oneLineSett.command < POLL_CODE_FF_READ_LAMP ){
-            //script mode, obsolete mode
-            const QString path2script = line.left(indxFrom);
-
-            const QFileInfo fi(path2script);
-            if(fi.exists() && fi.isExecutable()){
+            //<sendMessage><space><send prof name><space><message>
+            const QStringList ll = line.split(" ", QString::SkipEmptyParts);
+            if(ll.size() > 2 && ll.at(0) == "sendMessage" && mapProfiles.contains(ll.at(1))){
+                //ll.at(0) - sendMessage
+//                indxFrom = line.indexOf(ll.at(1)) + ll.at(1).length() + 1; //indx + len + spacelen
                 QJsonObject json;
-                json.insert("__path", path2script);
-                json.insert("__message",oneLineSett.line );
+                json.insert("__path", mapProfiles.value(ll.at(1)).fPath2script);
+                json.insert("__args", mapProfiles.value(ll.at(1)).args);
+                json.insert("__message", line.mid(line.indexOf(ll.at(1)) + ll.at(1).length() + 1) );
 
 
                 oneLineSett.line = QJsonDocument(json).toJson(QJsonDocument::Compact);
-
                 oneLineSett.isJson = true;
                 oneLineSett.command = 0xFFFF;//send message
 
                 commands2execute.append(oneLineSett);
 
-
-
-
-                if(verboseMode){
-                    qDebug() << "fromHashMyEventsRules script is found " << path2script <<  line.mid(indxFrom + 1);
-
-                    //                        const QUrl url(line.mid(indxFrom + 1));
-                    //                        const QString strArgs = url.toEncoded();
-
-                    qDebug() << "fromHashMyEventsRules script is found " << QUrl::toPercentEncoding(line.mid(indxFrom + 1));
-
-                }
                 continue;
-
             }
+            emit append2log(tr("Bad rule %1").arg(line));
+
+//            //script mode, obsolete mode
+//            const QString path2script = line.left(indxFrom);
+
+//            const QFileInfo fi(path2script);
+//            if(fi.exists() && fi.isExecutable()){
+//                QJsonObject json;
+//                json.insert("__path", path2script);
+//                json.insert("__message",oneLineSett.line );
 
 
-            //this is the future for messages
-            if(path2script == "telegram"){ //message mode name
-                oneLineSett = getExecuteTelegramSett(line);
-                if(oneLineSett.command > 0)
-                    commands2execute.append(oneLineSett);
+//                oneLineSett.line = QJsonDocument(json).toJson(QJsonDocument::Compact);
 
-            }
+//                oneLineSett.isJson = true;
+//                oneLineSett.command = 0xFFFF;//send message
+
+//                commands2execute.append(oneLineSett);
+
+
+
+
+//                if(verboseMode){
+//                    qDebug() << "fromHashMyEventsRules script is found " << path2script <<  line.mid(indxFrom + 1);
+
+//                    //                        const QUrl url(line.mid(indxFrom + 1));
+//                    //                        const QString strArgs = url.toEncoded();
+
+//                    qDebug() << "fromHashMyEventsRules script is found " << QUrl::toPercentEncoding(line.mid(indxFrom + 1));
+
+//                }
+//                continue;
+
+//            }
+
+
+//            //this is the future for messages
+//            if(path2script == "telegram"){ //message mode name
+//                oneLineSett = getExecuteTelegramSett(line);
+//                if(oneLineSett.command > 0)
+//                    commands2execute.append(oneLineSett);
+
+//            }
 
             continue;
 
@@ -237,54 +287,55 @@ QString DataHolderSharedObjectProcessor::getHRuleNameFromTheKey(const QString &k
 //----------------------------------------------------------------------------------------
 
 
-QJsonObject DataHolderSharedObjectProcessor::getTelegramJsonSett(const QString &line)
-{
-    QJsonObject json;
-    //telegram botToken chId message
-    const QStringList sett = line.split(" ");
-    if(sett.length() > 3){
-        //sett.at(0) - telegram
-        const QString botToken = sett.at(1);
-        const QString chId = sett.at(2);
-        const QString message = sett.mid(3).join(" ");
+//QJsonObject DataHolderSharedObjectProcessor::getTelegramJsonSett(const QString &line)
+//{
+//    //obsolete
+//    QJsonObject json;
+//    //telegram botToken chId message
+//    const QStringList sett = line.split(" ");
+//    if(sett.length() > 3){
+//        //sett.at(0) - telegram
+//        const QString botToken = sett.at(1);
+//        const QString chId = sett.at(2);
+//        const QString message = sett.mid(3).join(" ");
 
-        if(botToken.isEmpty() || chId.isEmpty()){
-            emit append2log(tr("Rule %1, bad settings, token=%2, ch=%3")
-                            .arg(sett.at(0))
-                            .arg(int(botToken.isEmpty()))
-                            .arg(int(chId.isEmpty()))
-                            );
-            return json;
-        }
+//        if(botToken.isEmpty() || chId.isEmpty()){
+//            emit append2log(tr("Rule %1, bad settings, token=%2, ch=%3")
+//                            .arg(sett.at(0))
+//                            .arg(int(botToken.isEmpty()))
+//                            .arg(int(chId.isEmpty()))
+//                            );
+//            return json;
+//        }
 
-        json.insert("__path", "/opt/matilda/script/telegram");
-        json.insert("__botToken", botToken);
-        json.insert("__chId", chId);
-        json.insert("__message", message );
+//        json.insert("__path", "/opt/matilda/script/telegram");
+//        json.insert("__botToken", botToken);
+//        json.insert("__chId", chId);
+//        json.insert("__message", message );
 
-    }
+//    }
 
-    return json;
-}
+//    return json;
+//}
 
 //----------------------------------------------------------------------------------------
 
 
-MyExecuteLine DataHolderSharedObjectProcessor::getExecuteTelegramSett(const QString &line)
-{
-    MyExecuteLine oneLineSett;
-    const auto json = getTelegramJsonSett(line);
+//MyExecuteLine DataHolderSharedObjectProcessor::getExecuteTelegramSett(const QString &line)
+//{
+//    MyExecuteLine oneLineSett;
+//    const auto json = getTelegramJsonSett(line);
 
-    if(!json.isEmpty()){
+//    if(!json.isEmpty()){
 
-        oneLineSett.line = QJsonDocument(json).toJson(QJsonDocument::Compact);
+//        oneLineSett.line = QJsonDocument(json).toJson(QJsonDocument::Compact);
 
-        oneLineSett.isJson = true;
-        oneLineSett.command = 0xFFFF;//send message
+//        oneLineSett.isJson = true;
+//        oneLineSett.command = 0xFFFF;//send message
 
-    }
-    return oneLineSett;
-}
+//    }
+//    return oneLineSett;
+//}
 
 //----------------------------------------------------------------------------------------
 
@@ -308,10 +359,10 @@ void DataHolderSharedObjectProcessor::createLinesIterator()
 
 //----------------------------------------------------------------------------------------
 
-void DataHolderSharedObjectProcessor::setEventManagerRules(QVariantHash hashRules)
+void DataHolderSharedObjectProcessor::setEventManagerRules(QVariantHash hashRules, QVariantHash hashProfiles)
 {
 
-    MyEventsRules lastRules = fromHashMyEventsRules(hashRules);
+    MyEventsRules lastRules = fromHashMyEventsRules(hashRules, hashProfiles);
 
     lastPollRules.clear();
     lastSystemRules.clear();
@@ -336,6 +387,15 @@ void DataHolderSharedObjectProcessor::checkThisDeviceNoData(const quint16 &pollC
 {
     //when there is no data for long time, max 7 days
 
+    //it checks only devices after answer,
+    if(lastPollRules.isEmpty())
+        return; //no rules , so take a rest
+
+    if(!lastPollRules.contains(pollCode))
+        return;//ignore this poll code
+    auto hdata = hdataFromOneRecord(devID, oneRecord);
+
+    smartEvntProcessor(devID, "", pollCode, lastPollRules.value(pollCode), hdata);
 
 }
 
@@ -356,7 +416,8 @@ void DataHolderSharedObjectProcessor::checkThisDevice(const quint16 &pollCode, c
 
     auto hdata = hdataFromOneRecord(devID, oneRecord);
 
-    smartEvntProcessor(who, evntType, pollCode, lastPollRules.value(pollCode), hdata);
+//    smartEvntProcessor(who, evntType, pollCode, lastPollRules.value(pollCode), hdata);
+    smartEvntProcessor(devID, "", pollCode, lastPollRules.value(pollCode), hdata);
 
 
 
@@ -399,7 +460,8 @@ void DataHolderSharedObjectProcessor::onThisCommandFailed(QString ruleNameId, QS
 void DataHolderSharedObjectProcessor::testThisRule(QString ruleName, QVariantHash oneRuleH)
 {
     //execute the rule command
-    const auto commands2execute = fromStringList(oneRuleH.value("c").toStringList());
+
+    const auto commands2execute = fromStringList(oneRuleH.value("c").toStringList(), lastMapProfiles);
 
     if(commands2execute.isEmpty()){
         emit append2log(tr("Nothing to execute"));
@@ -427,7 +489,7 @@ void DataHolderSharedObjectProcessor::testThisRule(QString ruleName, QVariantHas
     const QString ruleNameLineKey = getHRulesCounterKey(oneRule);
     const QString ruleCounterKey = QString("%1\n%2\n%3").arg("0").arg(devID).arg(additionalID);
 
-    const int cntr = executeLines(commands2execute, devID, ruleNameLineKey, ruleCounterKey);
+    const int cntr = executeLines(commands2execute, devID, ruleNameLineKey, ruleCounterKey, QHash<QString, QString>());
 
     if(verboseMode)
         qDebug() << "DataHolderSharedObjectProcessor::testThisRule send str " << cntr << oneRule.ruleName << oneRule.ruleLine;
@@ -467,27 +529,6 @@ void DataHolderSharedObjectProcessor::smartSystemEvent(QString who, QString evnt
     if(lastSystemRules.isEmpty())
         return;
 
-/*
- * variables
- * who
- *  - matilda-bbb
- *  - zbyrator-bbb
- *  - peredavator-bbb
- *  - firefly-bbb
- *  - matilda-uart
- *  - clock: dtEvnt
- *
- *  evntType
- *      - logIn : msec, usr, ip, lvl
- *      - logOut: msec, usr, ip, lvl
- *      - authFail: msec, usr, ip
- *      - appStart: msec
- *      - dtEvnt: msec
- *      - gsmMoney - msec, USSD answer when money was checked
- *      - embInfo - msec, ch: main or others,
- *
- *
- */
 //    const auto listOneCode = lastSystemRules.value(0);//keep this compatibility
 
     auto hdata = hdataFromOnePayload(who, evntType, payload);
@@ -498,8 +539,74 @@ void DataHolderSharedObjectProcessor::smartSystemEvent(QString who, QString evnt
 
 //----------------------------------------------------------------------------------------
 
+void DataHolderSharedObjectProcessor::sendTestMessage(QString profName, QVariantHash oneProf)
+{
+    QVariantHash h;
+    h.insert(profName, oneProf);
+
+    const auto mapProfile = fromSendMessageProfileMap(h);
+
+
+    if(mapProfile.isEmpty()){
+        emit append2log(tr("Nothing to test, profile"));
+        if(verboseMode)
+            qDebug() << "sendTestMessage " << profName << oneProf;
+        return;
+    }
+    QStringList l;
+    l.append(QString("sendMessage %1 Profile: %1, Test message.").arg(profName));
+    const auto commands2execute = fromStringList(l, mapProfile);
+
+    if(mapProfile.isEmpty()){
+        emit append2log(tr("Nothing to test, commands"));
+        if(verboseMode)
+            qDebug() << "sendTestMessage " << profName << oneProf << l;
+        return;
+    }
+
+    QVariantMap map = QJsonDocument::fromJson(commands2execute.constFirst().line.toUtf8()).object().toVariantMap();
+
+
+    map.insert("__ruleNameId", "test");
+    map.insert("__counterId", "test");
+
+    //final
+     emit sendAMessageDevMap(map);
+
+}
+
+//----------------------------------------------------------------------------------------
+
 void DataHolderSharedObjectProcessor::smartEvntProcessor(const QString &devIdWho, const QString &additionalIdEvntType, const quint16 &pollCode, const MyRuleSettingsList &listOneCode, QHash<QString, QString> &hdata)
 {
+
+    /*
+     * variables
+     * when systemEvent, pollCode = 0
+     * who
+     *  - matilda-bbb
+     *  - zbyrator-bbb
+     *  - peredavator-bbb
+     *  - firefly-bbb
+     *  - matilda-uart
+     *  - clock: dtEvnt
+     *
+     *  evntType
+     *      - logIn : msec, usr, ip, lvl
+     *      - logOut: msec, usr, ip, lvl
+     *      - authFail: msec, usr, ip
+     *      - appStart: msec
+     *      - dtEvnt: msec
+     *      - gsmMoney - msec, USSD answer when money was checked
+     *      - embInfo - msec, ch: main or others,
+     *
+     *  when pollCode != 0
+     *  exchagne event
+     *  devIdWho - NI
+     *  additionalIdEvntType - empty
+     *
+     */
+
 
     for(int i = 0, imax = listOneCode.size(); i < imax; i++){
         const auto oneRule = listOneCode.at(i);
@@ -565,7 +672,7 @@ void DataHolderSharedObjectProcessor::smartEvntProcessor(const QString &devIdWho
             qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice ruleCounter" << ruleCounter << oneRule.limitExecutions << oneRule.ruleLine << oneRule.ruleName << ruleCounterKey;
 
 
-        const int cntr = executeLines(oneRule.commands2execute, devIdWho, ruleNameLineKey, ruleCounterKey);
+        const int cntr = executeLines(oneRule.commands2execute, devIdWho, ruleNameLineKey, ruleCounterKey, hdata);
 
 
         if(verboseMode)
@@ -576,7 +683,7 @@ void DataHolderSharedObjectProcessor::smartEvntProcessor(const QString &devIdWho
 
 //----------------------------------------------------------------------------------------
 
-int DataHolderSharedObjectProcessor::executeLines(const QList<MyExecuteLine> &commands2execute, const QString &devID, const QString &ruleNameLineKey, const QString &ruleCounterKey)
+int DataHolderSharedObjectProcessor::executeLines(const QList<MyExecuteLine> &commands2execute, const QString &devID, const QString &ruleNameLineKey, const QString &ruleCounterKey, const QHash<QString, QString> &hdata)
 {
     int cntr = 0;
     for(int j = 0, jmax = commands2execute.size(); j < jmax; j++){
@@ -592,6 +699,22 @@ int DataHolderSharedObjectProcessor::executeLines(const QList<MyExecuteLine> &co
                     qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice " << oneLineSett.isJson << oneLineSett.line;
                 continue;
             }
+            //find in __message keys for data
+            if(map.value("__message").toString().contains("$")){
+                const auto lk = hdata.keys();
+                QString message = map.value("__message").toString();
+                for(int ii = 0, iimax = lk.size(); ii < iimax; ii++){
+                    if(message.contains(lk.at(ii))){
+                        message.replace( QString("$%1").arg(lk.at(ii)), hdata.value(lk.at(ii)));
+                        if(!message.contains("$"))
+                            break;
+                    }
+                }
+                map.insert("__message", message);
+            }
+//            fromStringList()
+//            json.insert("__message", line.mid(line.indexOf(ll.at(1)) + ll.at(1).length() + 1) );
+
 
             if(verboseMode)
                 qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice send map " << oneLineSett.command << map;
@@ -604,7 +727,7 @@ int DataHolderSharedObjectProcessor::executeLines(const QList<MyExecuteLine> &co
                 //currently only telegram is supported,
                 //check __path
 
-                emit sendAMessageDevMap(map, "telegram");
+                emit sendAMessageDevMap(map);
             }else
                 emit sendCommand2pollDevMap(oneLineSett.command, map);
 

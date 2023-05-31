@@ -132,6 +132,7 @@ void DataHolderSharedObject::createDataProcessor()
     connect(this, &DataHolderSharedObject::testThisRule     , dataProcessor, &DataHolderSharedObjectProcessor::testThisRule);
     connect(this, &DataHolderSharedObject::resetThisRules   , dataProcessor, &DataHolderSharedObjectProcessor::resetThisRules);
     connect(this, &DataHolderSharedObject::smartSystemEvent , dataProcessor, &DataHolderSharedObjectProcessor::smartSystemEvent);
+    connect(this, &DataHolderSharedObject::sendTestMessage , dataProcessor, &DataHolderSharedObjectProcessor::sendTestMessage);
 
 }
 

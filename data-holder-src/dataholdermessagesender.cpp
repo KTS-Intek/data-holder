@@ -37,30 +37,35 @@ DataHolderMessageSender::LastSmartPing DataHolderMessageSender::getLastPingAnswe
 
 void DataHolderMessageSender::onThreadStarted()
 {
-    emit append2log(tr("Telegram client is ready"));
+    emit append2log(tr("Event Messanger client is ready"));
 }
+
+
 
 //-----------------------------------------------------------------------------------------
 
-void DataHolderMessageSender::sendAMessageDevMap(QVariantMap mapArgs, QString messageClientName)
+void DataHolderMessageSender::sendAMessageDevMap(QVariantMap mapArgs)
 {
 
-    emit append2log(tr("sendAMessageDevMap %1").arg(messageClientName));
+    emit append2log(tr("sendAMessageDevMap %1").arg(mapArgs.value("__path").toString().split("/").last()));
 
 
-    if(messageClientName != "telegram")
+//    if(messageClientName != "telegram")
+//        return;
+    const bool isTelegram = mapArgs.value("__path").toString().contains("telegram");
+    if(!isTelegram)
         return;
 
-    if(!sendThis2telegramDevMap(mapArgs, true) ){
+    if(!sendThisDevMap(mapArgs, true) ){
         //        emit smartPingTheseHosts(QString("api.telegram.org").split(" "), "some tag here to accecpt the result"); wait 10-15 sec, and try again
 
 
-        myState.telegramFailedSendCounter++;
+        myState.evntMessangerFailedSendCounter++;
 
-        if(myState.telegramFailedSendCounter < 3){ //for testing, if it works, remove the counter
+        if(myState.evntMessangerFailedSendCounter < 3){ //for testing, if it works, remove the counter
             //use matilda bbb to reset the interface
-            if(startIPCPingTest("api.telegram.org") && sendThis2telegramDevMap(mapArgs, false)){
-                myState.telegramFailedSendCounter = 0;
+            if( startIPCPingTest("api.telegram.org") && sendThisDevMap(mapArgs, false)){ //isTelegram
+                myState.evntMessangerFailedSendCounter = 0;
                 return;
             }
 
@@ -74,24 +79,24 @@ void DataHolderMessageSender::sendAMessageDevMap(QVariantMap mapArgs, QString me
 //            //add some network test
 //            startPingTest();
 
-//            if(myState.telegramFailedSendCounter == 1){
+//            if(myState.evntMessangerFailedSendCounter == 1){
 //                restartIface(false);
 //                startPingTest();
-//                if(sendThis2telegramDevMap(mapArgs, false) ){
-//                    telegramFailedSendCounter = 0;
+//                if(sendThisDevMap(mapArgs, false) ){
+//                    evntMessangerFailedSendCounter = 0;
 //                    return;
 //                }
 //            }
 
 
-            if(myState.telegramFailedSendCounter > 1 && myState.telegramFailedSendCounter < 10){
+            if(myState.evntMessangerFailedSendCounter > 1 && myState.evntMessangerFailedSendCounter < 10){
 
 
-                switch(myState.telegramFailedSendCounter){
+                switch(myState.evntMessangerFailedSendCounter){
                 //                case 2: restartDhcp(); break;
                 case 3: restartIface(false); break;
                 case 5: {
-                    myState.telegramFailedSendCounter = 400; //do it only once;
+                    myState.evntMessangerFailedSendCounter = 400; //do it only once;
                     restartIface(true);
                     break; }
                 }
@@ -103,7 +108,7 @@ void DataHolderMessageSender::sendAMessageDevMap(QVariantMap mapArgs, QString me
         }
 
     }else{
-        myState.telegramFailedSendCounter = 0;
+        myState.evntMessangerFailedSendCounter = 0;
     }
 
 }
@@ -127,11 +132,22 @@ void DataHolderMessageSender::smartPingTheseHostsResult(QString messagetag, bool
 
 //-----------------------------------------------------------------------------------------
 
-bool DataHolderMessageSender::sendThis2telegramDevMap(const QVariantMap &mapArgs, const bool &silent)
+bool DataHolderMessageSender::sendThisDevMap(const QVariantMap &mapArgs, const bool &silent)
 {
     //        QThread::sleep(5);
     //        const QUrl url(mapArgs.value("__message").toString());
-    const QString strArgs = QUrl::toPercentEncoding(mapArgs.value("__message").toString());
+
+//path 2 script    json.insert("__path", mapProfiles.value(ll.at(1)).fPath2script);
+//script arguments    json.insert("__args", mapProfiles.value(ll.at(1)).args);
+//message, html encoded    json.insert("__message", line.mid(indxFrom) );
+
+
+    QStringList strArgs;
+    if(!mapArgs.value("__args").toString().isEmpty())
+        strArgs.append(mapArgs.value("__args").toString());
+
+    if(!mapArgs.value("__message").toString().isEmpty())
+        strArgs.append(QUrl::toPercentEncoding(mapArgs.value("__message").toString()));
     //        qDebug() <<  str << str.toHtmlEscaped() << url.toEncoded() ;
 
     //        QUrl url;
@@ -147,7 +163,7 @@ bool DataHolderMessageSender::sendThis2telegramDevMap(const QVariantMap &mapArgs
         return true;
     }
 
-    const QByteArray readArr = readBashProc(mapArgs.value("__path").toString(), strArgs.split("\r\n"), false);
+    const QByteArray readArr = readBashProc(mapArgs.value("__path").toString(), strArgs, false);
 
     //        const bool r = QProcess::startDetached(mapArgs.value("__path").toString(), strArgs.split("\r\n"));
 
@@ -158,6 +174,7 @@ bool DataHolderMessageSender::sendThis2telegramDevMap(const QVariantMap &mapArgs
         return true;
 
     if(!readArr.isEmpty()){
+        //telegram send check, add for others, later
         const QJsonObject json = QJsonDocument::fromJson(QString(readArr).split("\r\n\r\n").last().toUtf8()).object();
         //{"ok":true,"result":{"message_id":34,"sender_chat":{"i
         /*
@@ -172,7 +189,7 @@ bool DataHolderMessageSender::sendThis2telegramDevMap(const QVariantMap &mapArgs
         if(verboseMode)
             qDebug() << "sendCommand2pollDevMap json " << json.isEmpty() << json.value("ok");
         if(!json.isEmpty() && json.value("ok").toBool()){
-            emit append2log(tr("telegram send ok, %1").arg(mapArgs.value("__message").toString().left(200)));
+            emit append2log(tr("messanger send ok, %1").arg(mapArgs.value("__message").toString().left(200)));
             return true;
         }
     }
@@ -185,7 +202,7 @@ bool DataHolderMessageSender::sendThis2telegramDevMap(const QVariantMap &mapArgs
         emit onThisCommandFailed(mapArgs.value("__ruleNameId").toString(), mapArgs.value("__counterId").toString());
 
     }
-    emit append2log(tr("telegram send err, %1").arg(mapArgs.value("__message").toString().left(200)));
+    emit append2log(tr("messanger send err, %1").arg(mapArgs.value("__message").toString().left(200)));
     emit append2log(tr("terr=%1").arg(QString(readArr)));// .left(800))));
 
     return false;
@@ -268,11 +285,11 @@ bool DataHolderMessageSender::startIPCPingTest(const QString &host)
 void DataHolderMessageSender::startPingTest()
 {
     // ping 8.8.8.8 -w 5
-    //    emit append2log(tr("ping=%1,%2").arg(QString::number(telegramFailedSendCounter)).arg(QString(readBashProc("ping",
+    //    emit append2log(tr("ping=%1,%2").arg(QString::number(evntMessangerFailedSendCounter)).arg(QString(readBashProc("ping",
     //                                                           QString("8.8.8.8 -w 5 -c 5").split(";"), true))));
     //ping telegram, dns check
     emit append2log(tr("ping=%1,%2")
-                    .arg(QString::number(myState.telegramFailedSendCounter))
+                    .arg(QString::number(myState.evntMessangerFailedSendCounter))
                     .arg(QString(readBashProc("ping",
                                               QString("api.telegram.org -w 5 -c 5").split(";"), true))));
 

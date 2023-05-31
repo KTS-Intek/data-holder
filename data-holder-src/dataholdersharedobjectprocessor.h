@@ -28,12 +28,17 @@ public:
 
     QStringList listRulesWithErrors;
 
+    SendMessageProfileMap lastMapProfiles;
+
     QHash<QString, QHash<QString, quint32> > hRulesCounter; //<ruleName>\n<ruleLine>  to <devId> <counter>
 
 
-    MyEventsRules fromHashMyEventsRules(const QVariantHash &h);
+    MyEventsRules fromHashMyEventsRules(const QVariantHash &h, const QVariantHash &hashProfiles);
 
-    QList<MyExecuteLine> fromStringList(const QStringList &commands2executeStrList);
+    SendMessageProfileMap fromSendMessageProfileMap(const QVariantHash &hashProfiles);
+
+
+    QList<MyExecuteLine> fromStringList(const QStringList &commands2executeStrList, const SendMessageProfileMap &mapProfiles);
 
     QHash<QString,QString> hdataFromVarHash(const QVariantHash &hash);
 
@@ -46,16 +51,16 @@ public:
 
      QString getHRuleNameFromTheKey(const QString &key);
 
-     QJsonObject getTelegramJsonSett(const QString &line);
+//     QJsonObject getTelegramJsonSett(const QString &line);
 
-     MyExecuteLine getExecuteTelegramSett(const QString &line);
+//     MyExecuteLine getExecuteTelegramSett(const QString &line);
 
 signals:
      void sendCommand2pollDevStr(quint16 pollCode, QString args);
 
      void sendCommand2pollDevMap(quint16 pollCode, QVariantMap mapArgs);
 
-     void sendAMessageDevMap(QVariantMap mapArgs, QString messageClientName);
+     void sendAMessageDevMap(QVariantMap mapArgs);
 
      void addThisDHEvent(QString ruleName, int cntr, quint16 pollCode, QString ruleLine, QString devId, QString additioanlDevId);
 
@@ -77,7 +82,7 @@ signals:
 public slots:
     void createLinesIterator();
 
-    void setEventManagerRules(QVariantHash hashRules);
+    void setEventManagerRules(QVariantHash hashRules, QVariantHash hashProfiles);
 
     void checkThisDeviceNoData(const quint16 &pollCode, const QString &devID, const DHMsecRecord &oneRecord);
 
@@ -94,12 +99,13 @@ public slots:
 
     void smartSystemEvent(QString who, QString evntType, QVariantHash payload);//who app name, evntType logIn,logOut,authFail,appRestart,gsmMoney...
 
+    void sendTestMessage(QString profName, QVariantHash oneProf);
 
     void smartEvntProcessor(const QString &devIdWho, const QString &additionalIdEvntType, const quint16 &pollCode, const MyRuleSettingsList &listOneCode, QHash<QString,QString> &hdata);
 
 
 private:
-    int executeLines(const QList<MyExecuteLine> &commands2execute, const QString &devID, const QString &ruleNameLineKey, const QString &ruleCounterKey);
+    int executeLines(const QList<MyExecuteLine> &commands2execute, const QString &devID, const QString &ruleNameLineKey, const QString &ruleCounterKey, const QHash<QString, QString> &hdata);
 
 };
 

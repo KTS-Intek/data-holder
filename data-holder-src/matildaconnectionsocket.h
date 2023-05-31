@@ -33,7 +33,11 @@ signals:
     //from IPC to messageSender
     void smartPingTheseHostsResult(QString messagetag, bool ok, QString message);
 
+    void sendTestMessage(QString profName, QVariantHash oneProf);
+
     void smartSystemEvent(QString who, QString evntType, QVariantHash payload);//who app name, evntType logIn,logOut,authFail,appRestart,gsmMoney...
+
+
 
 public slots:
     //for client side

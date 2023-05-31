@@ -99,7 +99,9 @@ void DataHolderManager::reloadAllSettings()
 {
     append2log(tr("Reload settings"));
     QVariantHash hashRules = SettLoader4matilda().loadOneSett(SETT_DATAHOLDR_EVNTMNGR_RLS).toHash();
-    emit setEventManagerRules(hashRules);
+    QVariantHash hashProfiles = SettLoader4matilda().loadOneSett(SETT_DATAHOLDR_MSSNGR_PRFLS).toHash();
+
+    emit setEventManagerRules(hashRules, hashProfiles);
 
 
 }
@@ -198,7 +200,7 @@ void DataHolderManager::createSharedTableObject()
     connect(dhData, &DataHolderSharedObject::append2log, this, &DataHolderManager::append2log);
     connect(dhData, &DataHolderSharedObject::addThisDHEvent, this, &DataHolderManager::addThisDHEvent);
 
-
+    connect(this, &DataHolderManager::sendTestMessage           , dhData, &DataHolderSharedObject::sendTestMessage);
 }
 
 //---------------------------------------------------------------------------------------
@@ -286,7 +288,8 @@ void DataHolderManager::createMatildaLocalSocket()
 
 
     //from IPC to messageSender
-    connect(extSocket, &MatildaConnectionSocket::smartPingTheseHostsResult, this, &DataHolderManager::smartPingTheseHostsResult);
+    connect(extSocket, &MatildaConnectionSocket::smartPingTheseHostsResult  , this, &DataHolderManager::smartPingTheseHostsResult);
+    connect(extSocket, &MatildaConnectionSocket::sendTestMessage            , this, &DataHolderManager::sendTestMessage);
 
 //    void smartPingTheseHostsResult(QString messagetag, bool ok, QString message);
     //from messageSender
@@ -297,6 +300,7 @@ void DataHolderManager::createMatildaLocalSocket()
     connect(extSocket, &MatildaConnectionSocket::testThisRule       , dhData, &DataHolderSharedObject::testThisRule     );
     connect(extSocket, &MatildaConnectionSocket::resetThisRules     , dhData, &DataHolderSharedObject::resetThisRules   );
     connect(extSocket, &MatildaConnectionSocket::smartSystemEvent   , dhData, &DataHolderSharedObject::smartSystemEvent );
+    connect(extSocket, &MatildaConnectionSocket::resetThisRules     , dhData, &DataHolderSharedObject::resetThisRules   );
 
 
     extSocketThrd->start();
@@ -325,7 +329,8 @@ void DataHolderManager::createMessageSender()
 
 
     //from IPC to messageSender
-    connect(this, &DataHolderManager::smartPingTheseHostsResult, messanger, &DataHolderMessageSender::smartPingTheseHostsResult, Qt::DirectConnection);
+    connect(this, &DataHolderManager::smartPingTheseHostsResult , messanger, &DataHolderMessageSender::smartPingTheseHostsResult, Qt::DirectConnection);
+//    connect(this, &DataHolderManager::sendTestMessage           , messanger, &DataHolderMessageSender::sendTestMessage);
 
     //from messageSender
     connect(messanger, &DataHolderMessageSender::smartPingTheseHosts, this, &DataHolderManager::smartPingTheseHosts);

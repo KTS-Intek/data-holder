@@ -25,7 +25,7 @@ public:
 signals:
     void killAllAndExit();
 
-    void setEventManagerRules(QVariantHash hashRules);
+    void setEventManagerRules(QVariantHash hashRules, QVariantHash hashProfiles);
 
 
     //to external apps
@@ -33,7 +33,7 @@ signals:
 
     void sendCommand2pollDevMap(quint16 pollCode, QVariantMap mapArgs);
 
-    void sendAMessageDevMap(QVariantMap mapArgs, QString messageClientName);
+    void sendAMessageDevMap(QVariantMap mapArgs);
 
     void addThisDHEvent(QString ruleName, int cntr, quint16 pollCode, QString ruleLine, QString devId, QString additioanlDevId);
 
@@ -42,6 +42,8 @@ signals:
 
 
     //from IPC to messageSender
+    void sendTestMessage(QString profName, QVariantHash oneProf);
+
     void smartPingTheseHostsResult(QString messagetag, bool ok, QString message);
     //from messageSender
     void smartPingTheseHosts(QStringList hosts, QString messagetag);//ask matilda-bbb iface manager to ping , in case of error restart eth0

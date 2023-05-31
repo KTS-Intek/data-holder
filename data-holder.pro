@@ -4,7 +4,7 @@ QT -= gui
 CONFIG += c++11 console
 CONFIG -= app_bundle
 
-TARGET = data-holder
+TARGET = data-holder-test
 
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings
