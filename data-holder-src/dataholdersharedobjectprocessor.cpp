@@ -5,6 +5,7 @@
 #include <QDebug>
 #include <QFileInfo>
 #include <QUrl>
+#include <QDateTime>
 
 #include "definedpollcodes.h"
 
@@ -383,20 +384,28 @@ void DataHolderSharedObjectProcessor::setEventManagerRules(QVariantHash hashRule
 
 //----------------------------------------------------------------------------------------
 
-void DataHolderSharedObjectProcessor::checkThisDeviceNoData(const quint16 &pollCode, const QString &devID, const DHMsecRecord &oneRecord)
+
+void DataHolderSharedObjectProcessor::checkThisDeviceNoDataOrModem(const quint16 &pollCode, const QString &devID, const DHMsecRecord &oneRecord, const bool &modemFail)
 {
     //when there is no data for long time, max 7 days
 
     //it checks only devices after answer,
-    if(lastPollRules.isEmpty())
-        return; //no rules , so take a rest
+    if(lastSystemRules.isEmpty()){
+        if(verboseMode)
+            qDebug() << "checkThisDeviceNoDataOrModem " << lastSystemRules.isEmpty();
+        return;
+    }
 
-    if(!lastPollRules.contains(pollCode))
-        return;//ignore this poll code
+    //do not check pollCode
+//    if(!lastPollRules.contains(pollCode))
+//        return;//ignore this poll code
     auto hdata = hdataFromOneRecord(devID, oneRecord);
 
-    smartEvntProcessor(devID, "", pollCode, lastPollRules.value(pollCode), hdata);
+    hdata.insert("fPollCode", QString::number(pollCode));
+    hdata.insert("evntType", modemFail ? "nMdm" : "nAnswr");
 
+    //do not use pollCode here, it must be a system event
+    smartEvntProcessor(devID, modemFail ? "nMdm" : "nAnswr", 0, lastSystemRules.value(0), hdata);
 }
 
 //----------------------------------------------------------------------------------------
@@ -415,9 +424,9 @@ void DataHolderSharedObjectProcessor::checkThisDevice(const quint16 &pollCode, c
     //    QStringList removeBrokenRules;
 
     auto hdata = hdataFromOneRecord(devID, oneRecord);
-
+    hdata.insert("evntType", "exchng");
 //    smartEvntProcessor(who, evntType, pollCode, lastPollRules.value(pollCode), hdata);
-    smartEvntProcessor(devID, "", pollCode, lastPollRules.value(pollCode), hdata);
+    smartEvntProcessor(devID, "exchng", pollCode, lastPollRules.value(pollCode), hdata);
 
 
 
@@ -607,6 +616,14 @@ void DataHolderSharedObjectProcessor::smartEvntProcessor(const QString &devIdWho
      *
      */
 
+//    if(verboseMode)
+//        qDebug() << "smartEvntProcessor " << devIdWho << additionalIdEvntType << pollCode << listOneCode.size() << hdata.size();
+
+    if(hdata.contains("msec") && !hdata.contains("hmsec"))
+        hdata.insert("hmsec", QDateTime::fromMSecsSinceEpoch(hdata.value("msec").toLongLong()).toLocalTime().toString("yyyy-MM-dd hh:mm:ss t"));
+
+    if(hdata.contains("lmsec") && !hdata.contains("lhmsec"))
+        hdata.insert("lhmsec", QDateTime::fromMSecsSinceEpoch(hdata.value("lmsec").toLongLong()).toLocalTime().toString("yyyy-MM-dd hh:mm:ss t"));
 
     for(int i = 0, imax = listOneCode.size(); i < imax; i++){
         const auto oneRule = listOneCode.at(i);
@@ -690,7 +707,7 @@ int DataHolderSharedObjectProcessor::executeLines(const QList<MyExecuteLine> &co
         auto oneLineSett = commands2execute.at(j);
 
         if(oneLineSett.line.contains("$NI"))
-            oneLineSett.line = oneLineSett.line.replace("$NI", devID);
+            oneLineSett.line = oneLineSett.line.replace("$NI", hdata.value("NI", devID));
 
         if(oneLineSett.isJson){
             QVariantMap map = QJsonDocument::fromJson(oneLineSett.line.toUtf8()).object().toVariantMap();
@@ -709,6 +726,24 @@ int DataHolderSharedObjectProcessor::executeLines(const QList<MyExecuteLine> &co
                         if(!message.contains("$"))
                             break;
                     }
+                }
+
+                if(message.contains("$*")){
+                    //add all keys, and values
+                    QStringList outl;
+                    if(lk.isEmpty()){
+                        outl.append("no data to display");
+                        emit append2log(outl.join("\n"));
+
+                    }else{
+                        for(int ii = 0, iimax = lk.size(); ii < iimax; ii++){
+                            outl.append(QString("$%1 - %2").arg(lk.at(ii)).arg(hdata.value(lk.at(ii))));
+                        }
+                        emit append2log(tr("\nKey - value\n%1").arg(outl.join("\n")));
+
+                    }
+
+                    message.replace( QString("$*"), "\n" + outl.join("\n"));
                 }
                 map.insert("__message", message);
             }

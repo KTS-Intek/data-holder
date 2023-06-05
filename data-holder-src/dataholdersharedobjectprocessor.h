@@ -84,7 +84,7 @@ public slots:
 
     void setEventManagerRules(QVariantHash hashRules, QVariantHash hashProfiles);
 
-    void checkThisDeviceNoData(const quint16 &pollCode, const QString &devID, const DHMsecRecord &oneRecord);
+    void checkThisDeviceNoDataOrModem(const quint16 &pollCode, const QString &devID, const DHMsecRecord &oneRecord, const bool &modemFail);
 
     void checkThisDevice(const quint16 &pollCode, const QString &devID, const DHMsecRecord &oneRecord);
 

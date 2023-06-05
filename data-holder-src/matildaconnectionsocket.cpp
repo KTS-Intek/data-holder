@@ -43,6 +43,7 @@ void MatildaConnectionSocket::decodeReadData(const QVariant &dataVar, const quin
     case MTD_EXT_COMMAND_2_DHP_SYSEVNTS:{
 
         const QVariantHash h = dataVar.toHash();
+        qDebug() << "MTD_EXT_COMMAND_2_DHP_SYSEVNTS " << h;
         if(!h.isEmpty() && !h.value("who").toString().isEmpty())
             emit smartSystemEvent(h.value("who").toString(), h.value("evntType").toString(), h.value("payload").toHash());//who app name, evntType logIn,logOut,authFail,appRestart,gsmMoney...
 

@@ -97,6 +97,13 @@ void DataHolderLocalSocket::decodeReadData(const QVariant &dataVar, const quint1
     case DATAHOLDER_GET_POLLDATA_EXT: {
         writeHash = onDATAHOLDER_GET_POLLDATA_EXT(dataVar.toHash());
         break;}
+
+    case DATAHOLDER_ADD_NANSWER_EVNT: {
+            writeHash = onDATAHOLDER_ADD_NANSWER_EVNT(dataVar.toHash());
+                break;}
+    case DATAHOLDER_ADD_NMODEM_EVNT : {
+        writeHash = onDATAHOLDER_ADD_NMODEM_EVNT(dataVar.toHash());
+        break;}
     }
 
     if(!writeHash.isEmpty())
@@ -268,6 +275,125 @@ QVariantHash DataHolderLocalSocket::onDATAHOLDER_GET_POLLDATA_EXT(const QVariant
                 QString("your data is bad, pollCode='%1', ni='%2', hasPollCode='%3', hasNI='%4'")
                 .arg(pollCode).arg(devIDs.size()).arg(QString::number(hasPollCode))
                 .arg(QString::number(hasDevIds)), messagetag, objecttag);
+}
+
+//--------------------------------------------------------------------------------------
+
+QVariantHash DataHolderLocalSocket::onDATAHOLDER_ADD_NANSWER_EVNT(const QVariantHash &hash)
+{
+
+
+
+    const QVariant messagetag = hash.value("messagetag");
+    const QVariant objecttag = hash.value("objecttag");
+
+    if(mtdExtNameTxt.isEmpty())
+        return getErrorMessage("you have to register first", messagetag, objecttag); //it is not registered
+
+    /* there are 4 keys
+ * pollCode
+ * NI
+ * msec
+ * lmsec
+ * devType
+ *
+*/
+
+    const quint16 pollCode = hash.value("pollCode").toUInt();
+    const QString ni = hash.value("NI").toString();
+    const QString sn = hash.value("SN").toString();
+    const qint64 msec = hash.value("msec").toLongLong();
+
+    const quint16 devType = hash.value("devType").toUInt();
+    const qint64 lmsec = hash.value("lmsec").toLongLong();
+
+
+
+    if(verboseMode)
+        qDebug() << "onDATAHOLDER_ADD_NANSWER_EVNT " << mtdExtNameTxt << ni << sn
+                 << pollCode
+                 << msec
+                 << QDateTime::fromMSecsSinceEpoch(lmsec).toString("yyyy-MM-dd hh:mm:ss.zzz");
+
+
+
+    if(pollCode > 0 && msec > 0 && lmsec > 0){
+
+
+
+        dhData->checkThisDevNoAnswer(pollCode, ni, sn, msec, lmsec, devType, mtdExtNameTxt);
+
+        //for test only, to add values to the file
+        //#ifndef __x86_64
+        //        appendData2file(hash);
+        //#endif
+        return getOkMessage(messagetag, objecttag);
+    }
+
+    return getErrorMessage(
+                QString("your data is bad, pollCode='%1', ni='%2', msec='%3', lmsec='%4'")
+                .arg(pollCode).arg(ni).arg(msec).arg(QString::number(lmsec)), messagetag, objecttag);
+}
+
+//--------------------------------------------------------------------------------------
+
+QVariantHash DataHolderLocalSocket::onDATAHOLDER_ADD_NMODEM_EVNT(const QVariantHash &hash)
+{
+//    void checkThisModemNoAnswer(quint16 pollCode, QString devID, QString additionalID, qint64 msec, int tryCntr, int isActv, QString ifaceName, qint16 devType, QString srcname);
+
+    const QVariant messagetag = hash.value("messagetag");
+    const QVariant objecttag = hash.value("objecttag");
+
+    if(mtdExtNameTxt.isEmpty())
+        return getErrorMessage("you have to register first", messagetag, objecttag); //it is not registered
+
+    /* there are 4 keys
+ * pollCode
+ * NI
+ * msec
+ * lmsec
+ * devType
+ *
+*/
+
+    const quint16 pollCode = hash.value("pollCode").toUInt();
+    const QString ni = hash.value("NI").toString();
+    const QString sn = hash.value("SN").toString();
+    const qint64 msec = hash.value("msec").toLongLong();
+
+    const quint16 devType = hash.value("devType").toUInt();
+
+    const int tryCntr = hash.value("tryCntr").toInt();
+    const int isActv = hash.value("isActv").toInt();
+    const QString ifaceName = hash.value("ifaceName").toString();
+
+
+
+    if(verboseMode)
+        qDebug() << "onDATAHOLDER_ADD_NMODEM_EVNT " << mtdExtNameTxt << ni << sn
+                 << pollCode
+                 << msec
+                 << QDateTime::fromMSecsSinceEpoch(msec).toString("yyyy-MM-dd hh:mm:ss.zzz");
+
+
+
+    if(pollCode > 0 && msec > 0 && !ifaceName.isEmpty()){
+
+
+//        void checkThisModemNoAnswer(quint16 pollCode, QString devID, QString additionalID, qint64 msec, int tryCntr, int isActv, QString ifaceName, qint16 devType, QString srcname);
+
+        dhData->checkThisModemNoAnswer(pollCode, ni, sn, msec, tryCntr, isActv, ifaceName, devType, mtdExtNameTxt);
+
+        //for test only, to add values to the file
+        //#ifndef __x86_64
+        //        appendData2file(hash);
+        //#endif
+        return getOkMessage(messagetag, objecttag);
+    }
+
+    return getErrorMessage(
+                QString("your data is bad, pollCode='%1', ni='%2', msec='%3', tryCntr='%4'")
+                .arg(pollCode).arg(ni).arg(msec).arg(QString::number(tryCntr)), messagetag, objecttag);
 }
 
 //--------------------------------------------------------------------------------------

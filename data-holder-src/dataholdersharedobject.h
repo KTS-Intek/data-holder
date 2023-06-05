@@ -79,7 +79,9 @@ signals:
 public slots:
     void createDataProcessor();
 
-//    void checkThisDevNoAnswer(quint16 pollCode, QString devID, QString additionalID, qint64 msec, QString srcname);
+    void checkThisModemNoAnswer(quint16 pollCode, QString devID, QString additionalID, qint64 msec, int tryCntr, int isActv, QString ifaceName, qint16 devType, QString srcname);
+
+    void checkThisDevNoAnswer(quint16 pollCode, QString devID, QString additionalID, qint64 msec, qint64 lmsec, qint16 devType, QString srcname);
 
     void addRecord(quint16 pollCode, QString devID, QString additionalID, qint64 msec, QVariantHash hash, QString srcname);
 

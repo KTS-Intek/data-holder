@@ -43,6 +43,10 @@ private:
 
     QVariantHash onDATAHOLDER_GET_POLLDATA_EXT(const QVariantHash &hash);
 
+    QVariantHash onDATAHOLDER_ADD_NANSWER_EVNT(const QVariantHash &hash);
+
+    QVariantHash onDATAHOLDER_ADD_NMODEM_EVNT(const QVariantHash &hash);
+
     QVariantHash getHashRecord(const quint16 &pollCode, const QString &devID, const bool &useSn4devID, const DHMsecRecord &pollCodeData);
 
 

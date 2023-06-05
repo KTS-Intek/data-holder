@@ -138,6 +138,74 @@ void DataHolderSharedObject::createDataProcessor()
 
 //----------------------------------------------------------------------------
 
+void DataHolderSharedObject::checkThisModemNoAnswer(quint16 pollCode, QString devID, QString additionalID, qint64 msec, int tryCntr, int isActv, QString ifaceName, qint16 devType, QString srcname)
+{
+    if(pollCode == 0 || devID.isEmpty())
+        return;
+
+
+    DHMsecRecord oneRecord;
+
+    oneRecord.msec = msec;
+    oneRecord.additionalID = additionalID;
+    oneRecord.srcname = srcname;
+//    oneRecord.wasRestored = false;
+    oneRecord.hash.insert("tryCntr", tryCntr);
+    oneRecord.hash.insert("isActv", isActv);
+    oneRecord.hash.insert("ifaceName", ifaceName);
+    oneRecord.hash.insert("devType", devType);
+    oneRecord.hash.insert("msec", QString::number(msec));
+
+
+
+//    qint64 msec;
+//    QString additionalID;
+
+//    QVariantHash hash;
+//    QString srcname;
+//    bool wasRestored;
+
+
+
+    dataProcessor->checkThisDeviceNoDataOrModem(pollCode, devID, oneRecord, true);
+}
+
+//----------------------------------------------------------------------------
+
+void DataHolderSharedObject::checkThisDevNoAnswer(quint16 pollCode, QString devID, QString additionalID, qint64 msec, qint64 lmsec, qint16 devType, QString srcname)
+{
+    if(pollCode == 0 || devID.isEmpty()){
+        if(verboseMode)
+            qDebug() << "checkThisDevNoAnswer " << pollCode << devID;
+        return;
+    }
+
+
+    DHMsecRecord oneRecord;
+
+    oneRecord.msec = msec;
+    oneRecord.additionalID = additionalID;
+    oneRecord.srcname = srcname;
+//    oneRecord.wasRestored = false;
+    oneRecord.hash.insert("lmsec", lmsec);
+    oneRecord.hash.insert("devType", devType);
+    oneRecord.hash.insert("msec", QString::number(msec));
+
+
+//    qint64 msec;
+//    QString additionalID;
+
+//    QVariantHash hash;
+//    QString srcname;
+//    bool wasRestored;
+
+    if(verboseMode)
+        qDebug() << "checkThisDevNoAnswer checkThisDeviceNoDataOrModem " << pollCode << devID;
+
+    dataProcessor->checkThisDeviceNoDataOrModem(pollCode, devID, oneRecord, false);
+
+}
+
 //void DataHolderSharedObject::checkThisDevNoAnswer(quint16 pollCode, QString devID, QString additionalID, qint64 msec, QString srcname)
 //{
 
