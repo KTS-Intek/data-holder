@@ -172,7 +172,7 @@ void DataHolderSharedObject::checkThisModemNoAnswer(quint16 pollCode, QString de
 
 //----------------------------------------------------------------------------
 
-void DataHolderSharedObject::checkThisDevNoAnswer(quint16 pollCode, QString devID, QString additionalID, qint64 msec, qint64 lmsec, qint16 devType, QString srcname)
+void DataHolderSharedObject::checkThisDevNoAnswer(quint16 pollCode, QString devID, QString additionalID, qint64 msec, qint64 lmsec, qint16 devType, QString srcname, QVariantHash nAnswrStat)
 {
     if(pollCode == 0 || devID.isEmpty()){
         if(verboseMode)
@@ -191,6 +191,9 @@ void DataHolderSharedObject::checkThisDevNoAnswer(quint16 pollCode, QString devI
     oneRecord.hash.insert("devType", devType);
     oneRecord.hash.insert("msec", QString::number(msec));
 
+    const auto lk = nAnswrStat.keys();
+    for(int i = 0, imax = lk.size(); i < imax; i++)
+        oneRecord.hash.insert(lk.at(i), nAnswrStat.value(lk.at(i)));
 
 //    qint64 msec;
 //    QString additionalID;

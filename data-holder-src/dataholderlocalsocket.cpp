@@ -310,7 +310,7 @@ QVariantHash DataHolderLocalSocket::onDATAHOLDER_ADD_NANSWER_EVNT(const QVariant
     const quint16 devType = hash.value("devType").toUInt();
     const qint64 lmsec = hash.value("lmsec").toLongLong();
 
-
+    const QVariantHash nAnswrStat = hash.value("data").toHash();
 
     if(verboseMode)
         qDebug() << "onDATAHOLDER_ADD_NANSWER_EVNT " << mtdExtNameTxt << ni << sn
@@ -324,7 +324,7 @@ QVariantHash DataHolderLocalSocket::onDATAHOLDER_ADD_NANSWER_EVNT(const QVariant
 
 
 
-        dhData->checkThisDevNoAnswer(pollCode, ni, sn, msec, lmsec, devType, mtdExtNameTxt);
+        dhData->checkThisDevNoAnswer(pollCode, ni, sn, msec, lmsec, devType, mtdExtNameTxt, nAnswrStat);
 
         //for test only, to add values to the file
         //#ifndef __x86_64
