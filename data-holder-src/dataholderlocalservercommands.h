@@ -15,6 +15,7 @@
 #define DATAHOLDER_GET_POLLDATA_EXT 32 //A CLIENT ASKS FOR DATA
 #define DATAHOLDER_ADD_NANSWER_EVNT 33 //no answer from a meter
 #define DATAHOLDER_ADD_NMODEM_EVNT  34 //no answer from a modem, bad channel
+#define DATAHOLDER_RELOAD_DBFORCED  35 //data-holder asks to reload data from the database
 
 
 

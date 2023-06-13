@@ -78,9 +78,10 @@ void DataHolderLocalSocket::decodeReadData(const QVariant &dataVar, const quint1
     case DATAHOLDER_GET_INFO: {
         if(mtdExtNameTxt.isEmpty()){
             mtdExtNameTxt = dataVar.toString();
-        }else{
-            close();
+            mWrite2extensionLater(writeHash, DATAHOLDER_RELOAD_DBFORCED);
+            return;
         }
+        close();
         break; }
 
     case DATAHOLDER_PING: {  onPingReceived(); break;}
@@ -104,6 +105,8 @@ void DataHolderLocalSocket::decodeReadData(const QVariant &dataVar, const quint1
     case DATAHOLDER_ADD_NMODEM_EVNT : {
         writeHash = onDATAHOLDER_ADD_NMODEM_EVNT(dataVar.toHash());
         break;}
+
+    case DATAHOLDER_RELOAD_DBFORCED:{  break;} //do not do anything
     }
 
     if(!writeHash.isEmpty())
