@@ -718,7 +718,7 @@ int DataHolderSharedObjectProcessor::executeLines(const QList<MyExecuteLine> &co
             }
             //find in __message keys for data
             if(map.value("__message").toString().contains("$")){
-                const auto lk = hdata.keys();
+                auto lk = hdata.keys();
                 QString message = map.value("__message").toString();
                 for(int ii = 0, iimax = lk.size(); ii < iimax; ii++){
                     if(message.contains(lk.at(ii))){
@@ -736,6 +736,7 @@ int DataHolderSharedObjectProcessor::executeLines(const QList<MyExecuteLine> &co
                         emit append2log(outl.join("\n"));
 
                     }else{
+                        std::sort(lk.begin(), lk.end());
                         for(int ii = 0, iimax = lk.size(); ii < iimax; ii++){
                             outl.append(QString("$%1 - %2").arg(lk.at(ii)).arg(hdata.value(lk.at(ii))));
                         }
