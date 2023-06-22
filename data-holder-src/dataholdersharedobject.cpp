@@ -114,6 +114,7 @@ void DataHolderSharedObject::createDataProcessor()
     connect(dataProcessor, &DataHolderSharedObjectProcessor::sendCommand2pollDevMap , this, &DataHolderSharedObject::sendCommand2pollDevMap);
     connect(dataProcessor, &DataHolderSharedObjectProcessor::sendCommand2pollDevStr , this, &DataHolderSharedObject::sendCommand2pollDevStr);
     connect(dataProcessor, &DataHolderSharedObjectProcessor::sendAMessageDevMap     , this, &DataHolderSharedObject::sendAMessageDevMap);
+    connect(dataProcessor, &DataHolderSharedObjectProcessor::sendAnIPCMessageDevMap , this, &DataHolderSharedObject::sendAnIPCMessageDevMap);
 
     connect(this, &DataHolderSharedObject::onThisCommandFailed, dataProcessor, &DataHolderSharedObjectProcessor::onThisCommandFailed);
 

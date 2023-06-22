@@ -194,6 +194,7 @@ void DataHolderManager::createSharedTableObject()
     connect(dhData, &DataHolderSharedObject::sendCommand2pollDevMap , this, &DataHolderManager::sendCommand2pollDevMap);
     connect(dhData, &DataHolderSharedObject::sendCommand2pollDevStr , this, &DataHolderManager::sendCommand2pollDevStr);
     connect(dhData, &DataHolderSharedObject::sendAMessageDevMap     , this, &DataHolderManager::sendAMessageDevMap);
+    connect(dhData, &DataHolderSharedObject::sendAnIPCMessageDevMap , this, &DataHolderManager::sendAnIPCMessageDevMap);
 
 
 
@@ -281,6 +282,7 @@ void DataHolderManager::createMatildaLocalSocket()
 
     connect(this, &DataHolderManager::sendCommand2pollDevMap, extSocket, &MatildaConnectionSocket::sendCommand2pollDevMap);
     connect(this, &DataHolderManager::sendCommand2pollDevStr, extSocket, &MatildaConnectionSocket::sendCommand2pollDevStr);
+    connect(this, &DataHolderManager::sendAnIPCMessageDevMap, extSocket, &MatildaConnectionSocket::sendAnIPCMessageDevMap);
 
 
     connect(extSocket, &MatildaConnectionSocket::append2log, this, &DataHolderManager::append2log);
@@ -300,7 +302,7 @@ void DataHolderManager::createMatildaLocalSocket()
     connect(extSocket, &MatildaConnectionSocket::testThisRule       , dhData, &DataHolderSharedObject::testThisRule     );
     connect(extSocket, &MatildaConnectionSocket::resetThisRules     , dhData, &DataHolderSharedObject::resetThisRules   );
     connect(extSocket, &MatildaConnectionSocket::smartSystemEvent   , dhData, &DataHolderSharedObject::smartSystemEvent );
-    connect(extSocket, &MatildaConnectionSocket::resetThisRules     , dhData, &DataHolderSharedObject::resetThisRules   );
+//    connect(extSocket, &MatildaConnectionSocket::resetThisRules     , dhData, &DataHolderSharedObject::resetThisRules   );
 
 
     extSocketThrd->start();

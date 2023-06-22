@@ -112,6 +112,40 @@ int MatildaConnectionSocket::gimmeAppId4pollCode(const quint16 &pollCode)
 
 //-------------------------------------------------------------------------------------
 
+void MatildaConnectionSocket::sendFireflyTempPowerCommand(bool remove, QString args)
+{
+    sendCommand2appHashPwrCommand(remove, args, false);
+
+}
+
+//-------------------------------------------------------------------------------------
+
+void MatildaConnectionSocket::sendAnIPCMessageDevMap(QVariantMap mapArgs)
+{
+//    if(cname == "setTempPwr" || cname == "removeTempPwr"){
+//        QJsonObject json;
+//        json.insert("__args", ll.mid(1).join(" "));//insert args part
+//        json.insert("__app-ipc", "firefly-bbb");
+//        json.insert("__cname", cname);
+
+//        oneLineSett.line = QJsonDocument(json).toJson(QJsonDocument::Compact);
+//        oneLineSett.isJson = true;
+//        oneLineSett.command = 0xFFFF;//send message
+
+//        commands2execute.append(oneLineSett);
+//        continue;
+//    }
+
+    if(mapArgs.value("__app-ipc").toString() == "firefly-bbb"){
+        if(mapArgs.value("__cname").toString() == "setTempPwr" || mapArgs.value("__cname").toString() == "removeTempPwr"){
+            sendFireflyTempPowerCommand((mapArgs.value("__cname").toString() == "removeTempPwr"), mapArgs.value("__args").toString());
+        }
+    }
+
+}
+
+//-------------------------------------------------------------------------------------
+
 void MatildaConnectionSocket::sendCommand2pollDevStr(quint16 pollCode, QString args)
 {
 
@@ -192,6 +226,48 @@ void MatildaConnectionSocket::sendCachedArgs()
     }
 }
 
+bool MatildaConnectionSocket::sendCommand2appHashPwrCommand(const bool &remove, const QString &args, const bool &isCached)
+{
+    if(state() != QLocalSocket::ConnectedState){
+        emit append2log(tr("send later, app=%1,code=%2")
+                        .arg("firefly")
+                        .arg(args));
+//        sendItLater(pollCode, hash);
+        lPwrCommand = LastFireflyTempPwrCommand(remove, args);
+        checkSendLater();
+        return false;
+    }
+
+
+//    emit append2log(tr("send now app=%1,code=%2,args=%3")
+//                    .arg(appid)
+//                    .arg(hash.value("pc").toInt())
+//                    .arg((hash.contains("d") ? hash.value("d").toString() : QString("size is %1").arg(hash.value("dmap").toMap().size())))
+//                    );
+
+    QVariantHash h;
+    h.insert("e", MTD_EXT_NAME_FIREFLY_MAIN);//destination
+    h.insert("c", remove ? MTD_EXT_CUSTOM_COMMAND_12 : MTD_EXT_CUSTOM_COMMAND_11);//command to process on the destination side
+    h.insert("d", args);//poll arguments
+
+    const qint64 r = mWrite2extensionF(QVariant(h), MTD_EXT_COMMAND_2_OTHER_APP);
+
+//    qDebug() << "CommanderLocalScket::sendFireflyTempPowerCommand " << remove <<  args ;
+
+
+    if(r > 0){
+        return true;
+    }
+
+
+    if(!isCached){ //allow to resend only once
+        lPwrCommand = LastFireflyTempPwrCommand(remove, args);
+        checkSendLater();
+    }
+
+    return false;
+}
+
 //-------------------------------------------------------------------------------------
 
 bool MatildaConnectionSocket::sendCommand2appHash(quint16 pollCode, QVariantHash hash, bool isCached)
@@ -235,9 +311,7 @@ bool MatildaConnectionSocket::sendCommand2appHash(quint16 pollCode, QVariantHash
 
 }
 
-//-------------------------------------------------------------------------------------
-
-void MatildaConnectionSocket::sendItLater(quint16 pollCode, QVariantHash hash)
+void MatildaConnectionSocket::checkSendLater()
 {
     if(!hasTmrLater){
         hasTmrLater = true;
@@ -253,6 +327,13 @@ void MatildaConnectionSocket::sendItLater(quint16 pollCode, QVariantHash hash)
     }
 
     emit startTmrArgs();
+}
+
+//-------------------------------------------------------------------------------------
+
+void MatildaConnectionSocket::sendItLater(quint16 pollCode, QVariantHash hash)
+{
+    checkSendLater();
 
     lcodes.append(pollCode);
     lhashs.append(hash);

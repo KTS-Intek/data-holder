@@ -108,6 +108,7 @@ SendMessageProfileMap DataHolderSharedObjectProcessor::fromSendMessageProfileMap
 QList<MyExecuteLine> DataHolderSharedObjectProcessor::fromStringList(const QStringList &commands2executeStrList, const SendMessageProfileMap &mapProfiles)
 {
     QList<MyExecuteLine> commands2execute;
+//    const QStringList listModes = QString("sendMessage setTempPwr removeTempPwr").split(" ");
     for(int j = 0, jmax = commands2executeStrList.size(); j < jmax; j++){
 
         const QString line = commands2executeStrList.at(j); //<poll code><space><arguments> or path to script, so check both
@@ -130,22 +131,39 @@ QList<MyExecuteLine> DataHolderSharedObjectProcessor::fromStringList(const QStri
         if(oneLineSett.command < POLL_CODE_FF_READ_LAMP ){
             //<sendMessage><space><send prof name><space><message>
             const QStringList ll = line.split(" ", QString::SkipEmptyParts);
-            if(ll.size() > 2 && ll.at(0) == "sendMessage" && mapProfiles.contains(ll.at(1))){
-                //ll.at(0) - sendMessage
-//                indxFrom = line.indexOf(ll.at(1)) + ll.at(1).length() + 1; //indx + len + spacelen
-                QJsonObject json;
-                json.insert("__path", mapProfiles.value(ll.at(1)).fPath2script);
-                json.insert("__args", mapProfiles.value(ll.at(1)).args);
-                json.insert("__message", line.mid(line.indexOf(ll.at(1)) + ll.at(1).length() + 1) );
+
+            if(ll.size() > 2){
+//                switch(QString("sendMessage setTempPwr removeTempPwr").split(" "))
+                const QString cname =  ll.at(0);
+                if(cname == "sendMessage" && mapProfiles.contains(ll.at(1))){
+                    //ll.at(0) - sendMessage
+                    //                indxFrom = line.indexOf(ll.at(1)) + ll.at(1).length() + 1; //indx + len + spacelen
+                    QJsonObject json;
+                    json.insert("__path", mapProfiles.value(ll.at(1)).fPath2script);
+                    json.insert("__args", mapProfiles.value(ll.at(1)).args);
+                    json.insert("__message", line.mid(line.indexOf(ll.at(1)) + ll.at(1).length() + 1) );
 
 
-                oneLineSett.line = QJsonDocument(json).toJson(QJsonDocument::Compact);
-                oneLineSett.isJson = true;
-                oneLineSett.command = 0xFFFF;//send message
+                    oneLineSett.line = QJsonDocument(json).toJson(QJsonDocument::Compact);
+                    oneLineSett.isJson = true;
+                    oneLineSett.command = 0xFFFF;//send message
+                    commands2execute.append(oneLineSett);
+                    continue;
+                }
 
-                commands2execute.append(oneLineSett);
+                if(cname == "setTempPwr" || cname == "removeTempPwr"){
+                    QJsonObject json;
+                    json.insert("__args", ll.mid(1).join(" "));//insert args part
+                    json.insert("__app-ipc", "firefly-bbb");
+                    json.insert("__cname", cname);
 
-                continue;
+                    oneLineSett.line = QJsonDocument(json).toJson(QJsonDocument::Compact);
+                    oneLineSett.isJson = true;
+                    oneLineSett.command = 0xFFFF;//send message
+
+                    commands2execute.append(oneLineSett);
+                    continue;
+                }
             }
             emit append2log(tr("Bad rule %1").arg(line));
 
@@ -283,6 +301,41 @@ QString DataHolderSharedObjectProcessor::getHRulesCounterKey(const MyRuleSetting
 QString DataHolderSharedObjectProcessor::getHRuleNameFromTheKey(const QString &key)
 {
     return key.split("\n\n\n").first();
+}
+
+QString DataHolderSharedObjectProcessor::insertVariables(QString message, const QHash<QString, QString> &hdata)
+{
+
+    auto lk = hdata.keys();
+//    QString message = map.value("__message").toString();
+    for(int ii = 0, iimax = lk.size(); ii < iimax; ii++){
+        if(message.contains(lk.at(ii))){
+            message.replace( QString("$%1").arg(lk.at(ii)), hdata.value(lk.at(ii)));
+            if(!message.contains("$"))
+                break;
+        }
+    }
+
+    if(message.contains("$*")){
+        //add all keys, and values
+        QStringList outl;
+        if(lk.isEmpty()){
+            outl.append("no data to display");
+            emit append2log(outl.join("\n"));
+
+        }else{
+            std::sort(lk.begin(), lk.end());
+            for(int ii = 0, iimax = lk.size(); ii < iimax; ii++){
+                outl.append(QString("$%1 - %2").arg(lk.at(ii)).arg(hdata.value(lk.at(ii))));
+            }
+            emit append2log(tr("\nKey - value\n%1").arg(outl.join("\n")));
+
+        }
+
+        message.replace( QString("$*"), "\n" + outl.join("\n"));
+    }
+//    map.insert("__message", message);
+    return message;
 }
 
 //----------------------------------------------------------------------------------------
@@ -716,37 +769,22 @@ int DataHolderSharedObjectProcessor::executeLines(const QList<MyExecuteLine> &co
                     qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice " << oneLineSett.isJson << oneLineSett.line;
                 continue;
             }
+
+//            json.insert("__args", ll.mid(1).join(" "));//insert args part
+//            json.insert("__app-ipc", "firefly-bbb");
+//            json.insert("__cname", cname);
+
+            if(!map.value("__app-ipc").toString().isEmpty()){
+                //IPC mode
+                map.insert("__args", insertVariables(map.value("__args").toString(), hdata));
+
+            }
+
             //find in __message keys for data
             if(map.value("__message").toString().contains("$")){
-                auto lk = hdata.keys();
-                QString message = map.value("__message").toString();
-                for(int ii = 0, iimax = lk.size(); ii < iimax; ii++){
-                    if(message.contains(lk.at(ii))){
-                        message.replace( QString("$%1").arg(lk.at(ii)), hdata.value(lk.at(ii)));
-                        if(!message.contains("$"))
-                            break;
-                    }
-                }
+                map.insert("__message", insertVariables(map.value("__message").toString(), hdata));
 
-                if(message.contains("$*")){
-                    //add all keys, and values
-                    QStringList outl;
-                    if(lk.isEmpty()){
-                        outl.append("no data to display");
-                        emit append2log(outl.join("\n"));
 
-                    }else{
-                        std::sort(lk.begin(), lk.end());
-                        for(int ii = 0, iimax = lk.size(); ii < iimax; ii++){
-                            outl.append(QString("$%1 - %2").arg(lk.at(ii)).arg(hdata.value(lk.at(ii))));
-                        }
-                        emit append2log(tr("\nKey - value\n%1").arg(outl.join("\n")));
-
-                    }
-
-                    message.replace( QString("$*"), "\n" + outl.join("\n"));
-                }
-                map.insert("__message", message);
             }
 //            fromStringList()
 //            json.insert("__message", line.mid(line.indexOf(ll.at(1)) + ll.at(1).length() + 1) );
@@ -763,7 +801,10 @@ int DataHolderSharedObjectProcessor::executeLines(const QList<MyExecuteLine> &co
                 //currently only telegram is supported,
                 //check __path
 
-                emit sendAMessageDevMap(map);
+                if(!map.value("__app-ipc").toString().isEmpty())
+                    emit sendAnIPCMessageDevMap(map);
+                else
+                    emit sendAMessageDevMap(map);
             }else
                 emit sendCommand2pollDevMap(oneLineSett.command, map);
 

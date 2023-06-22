@@ -42,7 +42,10 @@ signals:
 public slots:
     //for client side
 
+    void sendFireflyTempPowerCommand(bool remove, QString args);
 
+
+    void sendAnIPCMessageDevMap(QVariantMap mapArgs);
 
     void sendCommand2pollDevStr(quint16 pollCode, QString args);
 
@@ -61,14 +64,25 @@ public slots:
 
 
 private:
+    bool sendCommand2appHashPwrCommand(const bool &remove,  const QString &args, const bool &isCached);
 
 
     bool sendCommand2appHash(quint16 pollCode, QVariantHash hash, bool isCached);
+
+    void checkSendLater();
 
     void sendItLater(quint16 pollCode, QVariantHash hash);
 
     QList<quint16> lcodes;
     QList<QVariantHash> lhashs;
+
+    struct LastFireflyTempPwrCommand
+    {
+        bool remove;
+        QString args;
+        LastFireflyTempPwrCommand() : remove(false) {}
+        LastFireflyTempPwrCommand(const bool &remove, const QString &args) : remove(remove), args(args) {}
+    } lPwrCommand;
 
 };
 

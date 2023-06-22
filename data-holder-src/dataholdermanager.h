@@ -35,6 +35,9 @@ signals:
 
     void sendAMessageDevMap(QVariantMap mapArgs);
 
+    void sendAnIPCMessageDevMap(QVariantMap mapArgs);
+
+
     void addThisDHEvent(QString ruleName, int cntr, quint16 pollCode, QString ruleLine, QString devId, QString additioanlDevId);
 
 

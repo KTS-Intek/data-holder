@@ -51,6 +51,8 @@ public:
 
      QString getHRuleNameFromTheKey(const QString &key);
 
+     QString insertVariables(QString message, const QHash<QString, QString> &hdata);
+
 //     QJsonObject getTelegramJsonSett(const QString &line);
 
 //     MyExecuteLine getExecuteTelegramSett(const QString &line);
@@ -61,6 +63,9 @@ signals:
      void sendCommand2pollDevMap(quint16 pollCode, QVariantMap mapArgs);
 
      void sendAMessageDevMap(QVariantMap mapArgs);
+
+     void sendAnIPCMessageDevMap(QVariantMap mapArgs);
+
 
      void addThisDHEvent(QString ruleName, int cntr, quint16 pollCode, QString ruleLine, QString devId, QString additioanlDevId);
 
