@@ -5,6 +5,7 @@
 
 ///[!] MatildaIO
 #include "matilda-bbb-src/shared/runprocess.h"
+//do not use it to reset eth0
 
 //-----------------------------------------------------------------------------------------
 
@@ -57,67 +58,40 @@ void DataHolderMessageSender::sendAMessageDevMap(QVariantMap mapArgs)
         return;
 
     if(!sendThisDevMap(mapArgs, true) ){
+
         //        emit smartPingTheseHosts(QString("api.telegram.org").split(" "), "some tag here to accecpt the result"); wait 10-15 sec, and try again
 
 
         myState.evntMessangerFailedSendCounter++;
 
-        if(myState.evntMessangerFailedSendCounter < 3){ //for testing, if it works, remove the counter
-            //use matilda bbb to reset the interface
-            if( startIPCPingTest("api.telegram.org") && sendThisDevMap(mapArgs, false)){ //isTelegram
-                myState.evntMessangerFailedSendCounter = 0;
-                return;
-            }
+//        if(myState.evntMessangerFailedSendCounter < 3){ //for testing, if it works, remove the counter
 
 
-
-        }else{
-
-            //it shouldn't be here, it is only for emergency
-
-
-//            //add some network test
-//            startPingTest();
-
-//            if(myState.evntMessangerFailedSendCounter == 1){
-//                restartIface(false);
-//                startPingTest();
-//                if(sendThisDevMap(mapArgs, false) ){
-//                    evntMessangerFailedSendCounter = 0;
-//                    return;
-//                }
-//            }
-
+            quint8 askReset = 0;
 
             if(myState.evntMessangerFailedSendCounter > 1 && myState.evntMessangerFailedSendCounter < 10){
 
 
                 switch(myState.evntMessangerFailedSendCounter){
                 //                case 2: restartDhcp(); break;
-                case 3: restartIface(false); break;
+                case 3: askReset = 1; break; // restartIface(false); break;
                 case 5: {
                     myState.evntMessangerFailedSendCounter = 400; //do it only once;
-                    restartIface(true);
+                    askReset = 2;
+//                    restartIface(true);
                     break; }
                 }
-
-
             }
 
-
-        }
+            //use matilda bbb to reset the interface
+            if( startIPCPingTest("api.telegram.org", askReset) && sendThisDevMap(mapArgs, false)){ //isTelegram
+                myState.evntMessangerFailedSendCounter = 0;
+                return;
+            }
 
     }else{
         myState.evntMessangerFailedSendCounter = 0;
     }
-
-}
-
-//-----------------------------------------------------------------------------------------
-
-void DataHolderMessageSender::onRestartDhcp()
-{
-    restartDhcp();
 
 }
 
@@ -238,17 +212,16 @@ void DataHolderMessageSender::resetPingAnswerIsReceived()
 QByteArray DataHolderMessageSender::readBashProc(const QString &app, const QStringList &args, const bool &fastRead)
 {
 
-    //     return RunProcess::runProc(app, verboseMode, args, fastRead ? 15000 : 25000, "", false, mergedChannels);
     return RunProcess::runBashProcExt(QString("%1 %2").arg(app).arg(args.join(" ")).toUtf8(), verboseMode, fastRead ? 5000 : 15000, false);
 }
 
 //-----------------------------------------------------------------------------------------
 
-bool DataHolderMessageSender::startIPCPingTest(const QString &host)
+bool DataHolderMessageSender::startIPCPingTest(const QString &host, const quint8 &askReset)
 {
     resetPingAnswerIsReceived();
 
-    emit append2log(tr("IPC ping %1").arg(host));
+    emit append2log(tr("IPC ping %1, reset %2").arg(host).arg(int(askReset)));
 
     const QString messagetag = QString("DHMessageSender-%1-%2")
             .arg(QString::number(myState.ipcPingRoundCounter++))
@@ -256,7 +229,7 @@ bool DataHolderMessageSender::startIPCPingTest(const QString &host)
 
     QElapsedTimer time;
     time.start();
-    emit smartPingTheseHosts(host.split(" "), messagetag);
+    emit smartPingTheseHosts(host.split(" "), messagetag, askReset);
 
     for(int i = 0; i < 1000 && time.elapsed() < 60000; i++){
         QThread::msleep(100);
@@ -281,57 +254,3 @@ bool DataHolderMessageSender::startIPCPingTest(const QString &host)
 }
 
 //-----------------------------------------------------------------------------------------
-
-void DataHolderMessageSender::startPingTest()
-{
-    // ping 8.8.8.8 -w 5
-    //    emit append2log(tr("ping=%1,%2").arg(QString::number(evntMessangerFailedSendCounter)).arg(QString(readBashProc("ping",
-    //                                                           QString("8.8.8.8 -w 5 -c 5").split(";"), true))));
-    //ping telegram, dns check
-    emit append2log(tr("ping=%1,%2")
-                    .arg(QString::number(myState.evntMessangerFailedSendCounter))
-                    .arg(QString(readBashProc("ping",
-                                              QString("api.telegram.org -w 5 -c 5").split(";"), true))));
-
-}
-
-//-----------------------------------------------------------------------------------------
-
-void DataHolderMessageSender::sendEth0Info()
-{
-    emit append2log(tr("iface=%1").arg(QString(readBashProc("ifconfig",
-                                                            QString("eth0").split(";"), false))));
-}
-
-//-----------------------------------------------------------------------------------------
-
-void DataHolderMessageSender::restartIface(const bool &hardMode)
-{
-    sendEth0Info();
-
-    //    QString command = "ifdown eth0 && ifup eth0 && date"; it doesn't work as it should
-    QString command = "ifconfig eth0 down && ifconfig eth0 up";
-    if(hardMode){
-        command.prepend("ip addr flush dev eth0 && ");
-
-
-    }
-
-    emit append2log(tr("reset,isHard=%1,%2").arg(int(hardMode))
-                    .arg(QString(readBashProc(command, QStringList(), false).left(1000))));
-
-    QThread::sleep(3);
-
-    sendEth0Info();
-}
-
-//-----------------------------------------------------------------------------------------
-
-void DataHolderMessageSender::restartDhcp()
-{
-    emit append2log(tr("dhcpcd=%1")
-                    .arg(QString(readBashProc("dhclient -r eth0 -v && date", QStringList(), false))));
-}
-
-//-----------------------------------------------------------------------------------------
-

@@ -31,7 +31,7 @@ signals:
 
     void append2log(QString message);
 
-    void smartPingTheseHosts(QStringList hosts, QString messagetag);//ask matilda-bbb iface manager to ping , in case of error restart eth0
+    void smartPingTheseHosts(QStringList hosts, QString messagetag, quint8 askReset);//ask matilda-bbb iface manager to ping , in case of error restart eth0
 
 
     //from messageSender
@@ -43,7 +43,6 @@ public slots:
 
     void sendAMessageDevMap(QVariantMap mapArgs);
 
-    void onRestartDhcp();
 
     //from IPC to messageSender
     void smartPingTheseHostsResult(QString messagetag, bool ok, QString message);//direct connection
@@ -58,16 +57,8 @@ private:
 
     QByteArray readBashProc(const QString &app, const QStringList &args, const bool &fastRead);
 
-    bool startIPCPingTest(const QString &host);
+    bool startIPCPingTest(const QString &host, const quint8 &askReset);
 
-    void startPingTest();
-
-    void sendEth0Info();
-
-
-    void restartIface(const bool &hardMode);
-
-    void restartDhcp();
 
 
     struct MessageSenderState

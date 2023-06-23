@@ -17,7 +17,6 @@ MatildaConnectionSocket::MatildaConnectionSocket(bool verboseMode, QObject *pare
     // dont forget to     void initializeSocket(quint16 mtdExtName);
     hasTmrLater = false;
 
-//    QTimer::singleShot(9999, this, SLOT(onRestartDhcp())); for test only
 
 }
 //void ZbyratorSocket::relayStatusChanged(QVariantMap map)
@@ -184,7 +183,7 @@ void MatildaConnectionSocket::sendCommand2pollDevMap(quint16 pollCode, QVariantM
 
 //-------------------------------------------------------------------------------------
 
-void MatildaConnectionSocket::smartPingTheseHosts(QStringList hosts, QString messagetag)
+void MatildaConnectionSocket::smartPingTheseHosts(QStringList hosts, QString messagetag, quint8 askReset)
 {
 //    const QVariantHash h = dataVar.toHash();
 //    QStringList hosts = h.value("hosts").toStringList();
@@ -201,6 +200,8 @@ void MatildaConnectionSocket::smartPingTheseHosts(QStringList hosts, QString mes
     QVariantHash h;
     h.insert("hosts", hosts);
     h.insert("messagetag", messagetag);
+    h.insert("askReset", askReset);//0 - ignore, 1 - soft , 2 - hard reset
+
 
     mWrite2extension(h, MTD_EXT_COMMAND_2_SMARTPING);
 

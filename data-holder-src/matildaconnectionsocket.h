@@ -54,7 +54,7 @@ public slots:
 
 
         //from messageSender
-     void smartPingTheseHosts(QStringList hosts, QString messagetag);//ask matilda-bbb iface manager to ping , in case of error restart eth0
+     void smartPingTheseHosts(QStringList hosts, QString messagetag, quint8 askReset);//ask matilda-bbb iface manager to ping , in case of error restart eth0
 
 
 

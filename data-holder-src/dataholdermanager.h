@@ -49,7 +49,7 @@ signals:
 
     void smartPingTheseHostsResult(QString messagetag, bool ok, QString message);
     //from messageSender
-    void smartPingTheseHosts(QStringList hosts, QString messagetag);//ask matilda-bbb iface manager to ping , in case of error restart eth0
+    void smartPingTheseHosts(QStringList hosts, QString messagetag, quint8 askReset);//ask matilda-bbb iface manager to ping , in case of error restart eth0
 
     void smartSystemEvent(QString who, QString evntType, QVariantHash payload);//who app name, evntType logIn,logOut,authFail,appRestart,gsmMoney...
 
