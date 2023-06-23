@@ -73,6 +73,28 @@ MyEventsRules DataHolderSharedObjectProcessor::fromHashMyEventsRules(const QVari
         out.insert(pollCode, l);//0 - system events
     }
 
+    if(verboseMode){
+        qDebug() << "DataHolderSharedObjectProcessor::fromHashMyEventsRules ---------------------------------";
+
+         auto lk = out.keys();
+         std::sort(lk.begin(), lk.end());
+
+        for(int i = 0, imax = lk.size(); i < imax; i++){
+            const auto l = out.value(lk.at(i));
+            for(int j = 0, jmax = l.size(); j < jmax; j++){
+                const auto onerule = l.at(j);
+
+                qDebug() << i << lk.at(i) << onerule.ruleName << onerule.disable << onerule.limitExecutions << onerule.ruleLine;
+                for(int n = 0, nmax = onerule.commands2execute.size(); n < nmax; n++){
+                    qDebug() << onerule.commands2execute.at(n).command << onerule.commands2execute.at(n).isJson << onerule.commands2execute.at(n).line;
+                }
+            }
+
+        }
+
+        qDebug() << "DataHolderSharedObjectProcessor::fromHashMyEventsRules ---------------------------------";
+    }
+
     return out;
 }
 
@@ -115,6 +137,9 @@ QList<MyExecuteLine> DataHolderSharedObjectProcessor::fromStringList(const QStri
 
         const int indxFrom = line.indexOf(" ");
 
+        if(verboseMode)
+            qDebug() << "DataHolderSharedObjectProcessor::fromStringList " << indxFrom << line;
+
         if(indxFrom < 0)
             continue;
 
@@ -132,7 +157,7 @@ QList<MyExecuteLine> DataHolderSharedObjectProcessor::fromStringList(const QStri
             //<sendMessage><space><send prof name><space><message>
             const QStringList ll = line.split(" ", QString::SkipEmptyParts);
 
-            if(ll.size() > 2){
+            if(ll.size() > 1){
 //                switch(QString("sendMessage setTempPwr removeTempPwr").split(" "))
                 const QString cname =  ll.at(0);
                 if(cname == "sendMessage" && mapProfiles.contains(ll.at(1))){
@@ -236,6 +261,16 @@ QList<MyExecuteLine> DataHolderSharedObjectProcessor::fromStringList(const QStri
         }
         commands2execute.append(oneLineSett);
     }
+    if(verboseMode){
+
+            qDebug() << "DataHolderSharedObjectProcessor::fromStringList commands -----------------";
+        for(int i = 0, imax = commands2execute.size(); i < imax; i++){
+            qDebug() << i << commands2execute.at(i).command << commands2execute.at(i).isJson << commands2execute.at(i).line;
+        }
+        qDebug() << "DataHolderSharedObjectProcessor::fromStringList commands ----------------";
+
+    }
+
     return commands2execute;
 }
 
@@ -336,6 +371,78 @@ QString DataHolderSharedObjectProcessor::insertVariables(QString message, const 
     }
 //    map.insert("__message", message);
     return message;
+}
+
+//----------------------------------------------------------------------------------------
+
+void DataHolderSharedObjectProcessor::checkInsertDTVariables(QHash<QString, QString> &hdata)
+{
+//     if(hdata.contains("msec") ){
+
+    if(!hdata.contains("msec"))
+        hdata.insert("msec", QString::number(QDateTime::currentMSecsSinceEpoch()));
+
+         //current time
+         if(hdata.contains("msec") && !hdata.contains("hmsec")){
+             const QDateTime dtutc = QDateTime::fromMSecsSinceEpoch(hdata.value("msec").toLongLong()).toUTC();
+             const QDateTime dtlocal = dtutc.toLocalTime(); //QDateTime::fromMSecsSinceEpoch(hdata.value("msec").toLongLong()).toLocalTime();
+
+//             hdata.insert("hldt", QDateTime::fromMSecsSinceEpoch(hdata.value("msec").toLongLong()).toLocalTime().toString("yyyy-MM-dd hh:mm:ss t"));
+//             hdata.insert("hudt", QDateTime::fromMSecsSinceEpoch(hdata.value("msec").toLongLong()).toUTC().toString("yyyy-MM-dd hh:mm:ss t"));
+
+             insertDateTimeVariables(dtlocal, "hmnl", hdata);
+             insertDateTimeVariables(dtutc, "hmnu", hdata);
+
+         }
+
+
+
+
+         //last answer or something like that
+         if(hdata.contains("lmsec") && !hdata.contains("lhmsec")){
+
+             const QDateTime dtutc = QDateTime::fromMSecsSinceEpoch(hdata.value("lmsec").toLongLong()).toUTC();
+             const QDateTime dtlocal = dtutc.toLocalTime(); //QDateTime::fromMSecsSinceEpoch(hdata.value("lmsec").toLongLong()).toLocalTime();
+
+//             hdata.insert("lhldt", QDateTime::fromMSecsSinceEpoch(hdata.value("lmsec").toLongLong()).toLocalTime().toString("yyyy-MM-dd hh:mm:ss t"));
+//             hdata.insert("lhudt", QDateTime::fromMSecsSinceEpoch(hdata.value("lmsec").toLongLong()).toUTC().toString("yyyy-MM-dd hh:mm:ss t"));
+
+             insertDateTimeVariables(dtlocal, "lhmnl", hdata);
+             insertDateTimeVariables(dtutc, "lhmnu", hdata);
+
+         }
+
+
+
+//     }
+
+
+}
+
+//----------------------------------------------------------------------------------------
+
+void DataHolderSharedObjectProcessor::insertDateTimeVariables(const QDateTime &dt, const QString &prefix, QHash<QString, QString> &hdata)
+{
+    hdata.insert(prefix + "dt"      , dt.toString("yyyy-MM-dd hh:mm:ss t"));
+
+    hdata.insert(prefix + "woy"     , QString::number(dt.date().weekNumber()));
+
+    hdata.insert(prefix + "dow"     , QString::number(dt.date().dayOfWeek()));
+    hdata.insert(prefix + "doy"     , QString::number(dt.date().dayOfYear()));
+
+
+    hdata.insert(prefix + "dom"     , dt.toString("d"));
+    hdata.insert(prefix + "year"    , dt.toString("yyyy"));
+    hdata.insert(prefix + "month"   , dt.toString("M"));
+
+    hdata.insert(prefix + "minute"   , dt.toString("mm"));
+    hdata.insert(prefix + "hour"   , dt.toString("hh"));
+    hdata.insert(prefix + "second"   , dt.toString("ss"));
+
+    hdata.insert(prefix + "month"   , dt.toString("M"));
+    hdata.insert(prefix + "month"   , dt.toString("M"));
+
+
 }
 
 //----------------------------------------------------------------------------------------
@@ -672,11 +779,10 @@ void DataHolderSharedObjectProcessor::smartEvntProcessor(const QString &devIdWho
 //    if(verboseMode)
 //        qDebug() << "smartEvntProcessor " << devIdWho << additionalIdEvntType << pollCode << listOneCode.size() << hdata.size();
 
-    if(hdata.contains("msec") && !hdata.contains("hmsec"))
-        hdata.insert("hmsec", QDateTime::fromMSecsSinceEpoch(hdata.value("msec").toLongLong()).toLocalTime().toString("yyyy-MM-dd hh:mm:ss t"));
+    //insert differnt types of date time variables
+    //it works only if it has msec or lmsec
+    checkInsertDTVariables(hdata);
 
-    if(hdata.contains("lmsec") && !hdata.contains("lhmsec"))
-        hdata.insert("lhmsec", QDateTime::fromMSecsSinceEpoch(hdata.value("lmsec").toLongLong()).toLocalTime().toString("yyyy-MM-dd hh:mm:ss t"));
 
     for(int i = 0, imax = listOneCode.size(); i < imax; i++){
         const auto oneRule = listOneCode.at(i);
@@ -758,6 +864,9 @@ int DataHolderSharedObjectProcessor::executeLines(const QList<MyExecuteLine> &co
     int cntr = 0;
     for(int j = 0, jmax = commands2execute.size(); j < jmax; j++){
         auto oneLineSett = commands2execute.at(j);
+
+        if(verboseMode)
+            qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice j= " << j << oneLineSett.command << oneLineSett.line;
 
         if(oneLineSett.line.contains("$NI"))
             oneLineSett.line = oneLineSett.line.replace("$NI", hdata.value("NI", devID));

@@ -53,6 +53,10 @@ public:
 
      QString insertVariables(QString message, const QHash<QString, QString> &hdata);
 
+     void checkInsertDTVariables(QHash<QString, QString> &hdata);
+
+     void insertDateTimeVariables(const QDateTime &dt, const QString &prefix, QHash<QString, QString> &hdata);
+
 //     QJsonObject getTelegramJsonSett(const QString &line);
 
 //     MyExecuteLine getExecuteTelegramSett(const QString &line);
