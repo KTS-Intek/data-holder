@@ -21,11 +21,10 @@ public:
     DataHolderSharedObject *dhData;//it stores data by NI and SN
 
 
-
 signals:
     void killAllAndExit();
 
-    void setEventManagerRules(QVariantHash hashRules, QVariantHash hashProfiles);
+    void setEventManagerRules(QVariantHash hashRules, QVariantHash hashProfiles, QPointF devCoordinate);
 
 
     //to external apps

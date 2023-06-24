@@ -7,6 +7,10 @@
 #include <QUrl>
 #include <QDateTime>
 
+
+///[!] firefly-shared
+#include "src/firefly/fireflyhelper.h"
+
 #include "definedpollcodes.h"
 
 //----------------------------------------------------------------------------------------
@@ -76,8 +80,8 @@ MyEventsRules DataHolderSharedObjectProcessor::fromHashMyEventsRules(const QVari
     if(verboseMode){
         qDebug() << "DataHolderSharedObjectProcessor::fromHashMyEventsRules ---------------------------------";
 
-         auto lk = out.keys();
-         std::sort(lk.begin(), lk.end());
+        auto lk = out.keys();
+        std::sort(lk.begin(), lk.end());
 
         for(int i = 0, imax = lk.size(); i < imax; i++){
             const auto l = out.value(lk.at(i));
@@ -130,7 +134,7 @@ SendMessageProfileMap DataHolderSharedObjectProcessor::fromSendMessageProfileMap
 QList<MyExecuteLine> DataHolderSharedObjectProcessor::fromStringList(const QStringList &commands2executeStrList, const SendMessageProfileMap &mapProfiles)
 {
     QList<MyExecuteLine> commands2execute;
-//    const QStringList listModes = QString("sendMessage setTempPwr removeTempPwr").split(" ");
+    //    const QStringList listModes = QString("sendMessage setTempPwr removeTempPwr").split(" ");
     for(int j = 0, jmax = commands2executeStrList.size(); j < jmax; j++){
 
         const QString line = commands2executeStrList.at(j); //<poll code><space><arguments> or path to script, so check both
@@ -158,7 +162,7 @@ QList<MyExecuteLine> DataHolderSharedObjectProcessor::fromStringList(const QStri
             const QStringList ll = line.split(" ", QString::SkipEmptyParts);
 
             if(ll.size() > 1){
-//                switch(QString("sendMessage setTempPwr removeTempPwr").split(" "))
+                //                switch(QString("sendMessage setTempPwr removeTempPwr").split(" "))
                 const QString cname =  ll.at(0);
                 if(cname == "sendMessage" && mapProfiles.contains(ll.at(1))){
                     //ll.at(0) - sendMessage
@@ -192,47 +196,47 @@ QList<MyExecuteLine> DataHolderSharedObjectProcessor::fromStringList(const QStri
             }
             emit append2log(tr("Bad rule %1").arg(line));
 
-//            //script mode, obsolete mode
-//            const QString path2script = line.left(indxFrom);
+            //            //script mode, obsolete mode
+            //            const QString path2script = line.left(indxFrom);
 
-//            const QFileInfo fi(path2script);
-//            if(fi.exists() && fi.isExecutable()){
-//                QJsonObject json;
-//                json.insert("__path", path2script);
-//                json.insert("__message",oneLineSett.line );
-
-
-//                oneLineSett.line = QJsonDocument(json).toJson(QJsonDocument::Compact);
-
-//                oneLineSett.isJson = true;
-//                oneLineSett.command = 0xFFFF;//send message
-
-//                commands2execute.append(oneLineSett);
+            //            const QFileInfo fi(path2script);
+            //            if(fi.exists() && fi.isExecutable()){
+            //                QJsonObject json;
+            //                json.insert("__path", path2script);
+            //                json.insert("__message",oneLineSett.line );
 
 
+            //                oneLineSett.line = QJsonDocument(json).toJson(QJsonDocument::Compact);
+
+            //                oneLineSett.isJson = true;
+            //                oneLineSett.command = 0xFFFF;//send message
+
+            //                commands2execute.append(oneLineSett);
 
 
-//                if(verboseMode){
-//                    qDebug() << "fromHashMyEventsRules script is found " << path2script <<  line.mid(indxFrom + 1);
-
-//                    //                        const QUrl url(line.mid(indxFrom + 1));
-//                    //                        const QString strArgs = url.toEncoded();
-
-//                    qDebug() << "fromHashMyEventsRules script is found " << QUrl::toPercentEncoding(line.mid(indxFrom + 1));
-
-//                }
-//                continue;
-
-//            }
 
 
-//            //this is the future for messages
-//            if(path2script == "telegram"){ //message mode name
-//                oneLineSett = getExecuteTelegramSett(line);
-//                if(oneLineSett.command > 0)
-//                    commands2execute.append(oneLineSett);
+            //                if(verboseMode){
+            //                    qDebug() << "fromHashMyEventsRules script is found " << path2script <<  line.mid(indxFrom + 1);
 
-//            }
+            //                    //                        const QUrl url(line.mid(indxFrom + 1));
+            //                    //                        const QString strArgs = url.toEncoded();
+
+            //                    qDebug() << "fromHashMyEventsRules script is found " << QUrl::toPercentEncoding(line.mid(indxFrom + 1));
+
+            //                }
+            //                continue;
+
+            //            }
+
+
+            //            //this is the future for messages
+            //            if(path2script == "telegram"){ //message mode name
+            //                oneLineSett = getExecuteTelegramSett(line);
+            //                if(oneLineSett.command > 0)
+            //                    commands2execute.append(oneLineSett);
+
+            //            }
 
             continue;
 
@@ -263,7 +267,7 @@ QList<MyExecuteLine> DataHolderSharedObjectProcessor::fromStringList(const QStri
     }
     if(verboseMode){
 
-            qDebug() << "DataHolderSharedObjectProcessor::fromStringList commands -----------------";
+        qDebug() << "DataHolderSharedObjectProcessor::fromStringList commands -----------------";
         for(int i = 0, imax = commands2execute.size(); i < imax; i++){
             qDebug() << i << commands2execute.at(i).command << commands2execute.at(i).isJson << commands2execute.at(i).line;
         }
@@ -342,7 +346,7 @@ QString DataHolderSharedObjectProcessor::insertVariables(QString message, const 
 {
 
     auto lk = hdata.keys();
-//    QString message = map.value("__message").toString();
+    //    QString message = map.value("__message").toString();
     for(int ii = 0, iimax = lk.size(); ii < iimax; ii++){
         if(message.contains(lk.at(ii))){
             message.replace( QString("$%1").arg(lk.at(ii)), hdata.value(lk.at(ii)));
@@ -369,7 +373,7 @@ QString DataHolderSharedObjectProcessor::insertVariables(QString message, const 
 
         message.replace( QString("$*"), "\n" + outl.join("\n"));
     }
-//    map.insert("__message", message);
+    //    map.insert("__message", message);
     return message;
 }
 
@@ -377,44 +381,59 @@ QString DataHolderSharedObjectProcessor::insertVariables(QString message, const 
 
 void DataHolderSharedObjectProcessor::checkInsertDTVariables(QHash<QString, QString> &hdata)
 {
-//     if(hdata.contains("msec") ){
+    //     if(hdata.contains("msec") ){
 
     if(!hdata.contains("msec"))
         hdata.insert("msec", QString::number(QDateTime::currentMSecsSinceEpoch()));
 
-         //current time
-         if(hdata.contains("msec") && !hdata.contains("hmsec")){
-             const QDateTime dtutc = QDateTime::fromMSecsSinceEpoch(hdata.value("msec").toLongLong()).toUTC();
-             const QDateTime dtlocal = dtutc.toLocalTime(); //QDateTime::fromMSecsSinceEpoch(hdata.value("msec").toLongLong()).toLocalTime();
+    //current time
+    if(hdata.contains("msec") && !hdata.contains("hmsec")){
+        const QDateTime dtutc = QDateTime::fromMSecsSinceEpoch(hdata.value("msec").toLongLong()).toUTC();
+        const QDateTime dtlocal = dtutc.toLocalTime(); //QDateTime::fromMSecsSinceEpoch(hdata.value("msec").toLongLong()).toLocalTime();
 
-//             hdata.insert("hldt", QDateTime::fromMSecsSinceEpoch(hdata.value("msec").toLongLong()).toLocalTime().toString("yyyy-MM-dd hh:mm:ss t"));
-//             hdata.insert("hudt", QDateTime::fromMSecsSinceEpoch(hdata.value("msec").toLongLong()).toUTC().toString("yyyy-MM-dd hh:mm:ss t"));
+        //             hdata.insert("hldt", QDateTime::fromMSecsSinceEpoch(hdata.value("msec").toLongLong()).toLocalTime().toString("yyyy-MM-dd hh:mm:ss t"));
+        //             hdata.insert("hudt", QDateTime::fromMSecsSinceEpoch(hdata.value("msec").toLongLong()).toUTC().toString("yyyy-MM-dd hh:mm:ss t"));
 
-             insertDateTimeVariables(dtlocal, "hmnl", hdata);
-             insertDateTimeVariables(dtutc, "hmnu", hdata);
+        insertDateTimeVariables(dtlocal, "hmnl", hdata);
+        insertDateTimeVariables(dtutc, "hmnu", hdata);
 
-         }
+        //sunrise sunset
+        int sunrise = -1, sunset = -1;
+        const QTime sunriseTime = FireflyHelper::getSunriseTime(devCoordinate, dtlocal.date());
+        const QTime sunsetTime = FireflyHelper::getSunsetTime(devCoordinate, dtlocal.date());
 
+        //                         getSunriseSunsetMinutes(sunrise, sunset, getSunriseTime(pos, localDate), getSunsetTime(pos, localDate));
 
+        FireflyHelper::getSunriseSunsetMinutes(sunrise, sunset, sunriseTime, sunsetTime);
 
-
-         //last answer or something like that
-         if(hdata.contains("lmsec") && !hdata.contains("lhmsec")){
-
-             const QDateTime dtutc = QDateTime::fromMSecsSinceEpoch(hdata.value("lmsec").toLongLong()).toUTC();
-             const QDateTime dtlocal = dtutc.toLocalTime(); //QDateTime::fromMSecsSinceEpoch(hdata.value("lmsec").toLongLong()).toLocalTime();
-
-//             hdata.insert("lhldt", QDateTime::fromMSecsSinceEpoch(hdata.value("lmsec").toLongLong()).toLocalTime().toString("yyyy-MM-dd hh:mm:ss t"));
-//             hdata.insert("lhudt", QDateTime::fromMSecsSinceEpoch(hdata.value("lmsec").toLongLong()).toUTC().toString("yyyy-MM-dd hh:mm:ss t"));
-
-             insertDateTimeVariables(dtlocal, "lhmnl", hdata);
-             insertDateTimeVariables(dtutc, "lhmnu", hdata);
-
-         }
+        hdata.insert("sunriseMod", QString::number(sunrise));
+        hdata.insert("sunsetMod", QString::number(sunset));
 
 
 
-//     }
+
+    }
+
+
+
+
+    //last answer or something like that
+    if(hdata.contains("lmsec") && !hdata.contains("lhmsec")){
+
+        const QDateTime dtutc = QDateTime::fromMSecsSinceEpoch(hdata.value("lmsec").toLongLong()).toUTC();
+        const QDateTime dtlocal = dtutc.toLocalTime(); //QDateTime::fromMSecsSinceEpoch(hdata.value("lmsec").toLongLong()).toLocalTime();
+
+        //             hdata.insert("lhldt", QDateTime::fromMSecsSinceEpoch(hdata.value("lmsec").toLongLong()).toLocalTime().toString("yyyy-MM-dd hh:mm:ss t"));
+        //             hdata.insert("lhudt", QDateTime::fromMSecsSinceEpoch(hdata.value("lmsec").toLongLong()).toUTC().toString("yyyy-MM-dd hh:mm:ss t"));
+
+        insertDateTimeVariables(dtlocal, "lhmnl", hdata);
+        insertDateTimeVariables(dtutc, "lhmnu", hdata);
+
+    }
+
+
+
+    //     }
 
 
 }
@@ -442,6 +461,9 @@ void DataHolderSharedObjectProcessor::insertDateTimeVariables(const QDateTime &d
     hdata.insert(prefix + "month"   , dt.toString("M"));
     hdata.insert(prefix + "month"   , dt.toString("M"));
 
+    //get minutes from the beginning of the day
+//minute of the day
+    hdata.insert(prefix + "mod", QString::number(QTime(0,0,0,0).secsTo(dt.time())/60));
 
 }
 
@@ -520,7 +542,7 @@ void DataHolderSharedObjectProcessor::createLinesIterator()
 
 //----------------------------------------------------------------------------------------
 
-void DataHolderSharedObjectProcessor::setEventManagerRules(QVariantHash hashRules, QVariantHash hashProfiles)
+void DataHolderSharedObjectProcessor::setEventManagerRules(QVariantHash hashRules, QVariantHash hashProfiles, QPointF devCoordinate)
 {
 
     MyEventsRules lastRules = fromHashMyEventsRules(hashRules, hashProfiles);
@@ -535,7 +557,7 @@ void DataHolderSharedObjectProcessor::setEventManagerRules(QVariantHash hashRule
     }
     lastPollRules = lastRules;
 
-
+    this->devCoordinate = devCoordinate;
 
     availableMethods = MyMathHelper::gimmeMethods();
 
@@ -557,8 +579,8 @@ void DataHolderSharedObjectProcessor::checkThisDeviceNoDataOrModem(const quint16
     }
 
     //do not check pollCode
-//    if(!lastPollRules.contains(pollCode))
-//        return;//ignore this poll code
+    //    if(!lastPollRules.contains(pollCode))
+    //        return;//ignore this poll code
     auto hdata = hdataFromOneRecord(devID, oneRecord);
 
     hdata.insert("fPollCode", QString::number(pollCode));
@@ -579,13 +601,13 @@ void DataHolderSharedObjectProcessor::checkThisDevice(const quint16 &pollCode, c
     if(!lastPollRules.contains(pollCode))
         return;//ignore this poll code
 
-//    const auto listOneCode = lastPollRules.value(pollCode);
+    //    const auto listOneCode = lastPollRules.value(pollCode);
 
     //    QStringList removeBrokenRules;
 
     auto hdata = hdataFromOneRecord(devID, oneRecord);
     hdata.insert("evntType", "exchng");
-//    smartEvntProcessor(who, evntType, pollCode, lastPollRules.value(pollCode), hdata);
+    //    smartEvntProcessor(who, evntType, pollCode, lastPollRules.value(pollCode), hdata);
     smartEvntProcessor(devID, "exchng", pollCode, lastPollRules.value(pollCode), hdata);
 
 
@@ -698,7 +720,7 @@ void DataHolderSharedObjectProcessor::smartSystemEvent(QString who, QString evnt
     if(lastSystemRules.isEmpty())
         return;
 
-//    const auto listOneCode = lastSystemRules.value(0);//keep this compatibility
+    //    const auto listOneCode = lastSystemRules.value(0);//keep this compatibility
 
     auto hdata = hdataFromOnePayload(who, evntType, payload);
     smartEvntProcessor(who, evntType, 0, lastSystemRules.value(0), hdata);
@@ -740,7 +762,7 @@ void DataHolderSharedObjectProcessor::sendTestMessage(QString profName, QVariant
     map.insert("__counterId", "test");
 
     //final
-     emit sendAMessageDevMap(map);
+    emit sendAMessageDevMap(map);
 
 }
 
@@ -776,8 +798,8 @@ void DataHolderSharedObjectProcessor::smartEvntProcessor(const QString &devIdWho
      *
      */
 
-//    if(verboseMode)
-//        qDebug() << "smartEvntProcessor " << devIdWho << additionalIdEvntType << pollCode << listOneCode.size() << hdata.size();
+    //    if(verboseMode)
+    //        qDebug() << "smartEvntProcessor " << devIdWho << additionalIdEvntType << pollCode << listOneCode.size() << hdata.size();
 
     //insert differnt types of date time variables
     //it works only if it has msec or lmsec
@@ -879,9 +901,9 @@ int DataHolderSharedObjectProcessor::executeLines(const QList<MyExecuteLine> &co
                 continue;
             }
 
-//            json.insert("__args", ll.mid(1).join(" "));//insert args part
-//            json.insert("__app-ipc", "firefly-bbb");
-//            json.insert("__cname", cname);
+            //            json.insert("__args", ll.mid(1).join(" "));//insert args part
+            //            json.insert("__app-ipc", "firefly-bbb");
+            //            json.insert("__cname", cname);
 
             if(!map.value("__app-ipc").toString().isEmpty()){
                 //IPC mode
@@ -895,8 +917,8 @@ int DataHolderSharedObjectProcessor::executeLines(const QList<MyExecuteLine> &co
 
 
             }
-//            fromStringList()
-//            json.insert("__message", line.mid(line.indexOf(ll.at(1)) + ll.at(1).length() + 1) );
+            //            fromStringList()
+            //            json.insert("__message", line.mid(line.indexOf(ll.at(1)) + ll.at(1).length() + 1) );
 
 
             if(verboseMode)

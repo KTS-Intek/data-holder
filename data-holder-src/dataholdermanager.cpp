@@ -17,6 +17,10 @@
 
 #include "dataholderapplogs.h"
 
+///[!] firefly-settings
+#include "firefly-v2-src/fireflyfilesetthelper.h"
+
+
 ///for test only
 #include "dataholderlocalsocket.h"
 
@@ -34,7 +38,7 @@ DataHolderManager::DataHolderManager(QObject *parent) : QObject(parent)
 
 DataHolderManager::~DataHolderManager()
 {
-   saveAllYourData();
+    saveAllYourData();
 }
 
 //---------------------------------------------------------------------------------------
@@ -101,7 +105,9 @@ void DataHolderManager::reloadAllSettings()
     QVariantHash hashRules = SettLoader4matilda().loadOneSett(SETT_DATAHOLDR_EVNTMNGR_RLS).toHash();
     QVariantHash hashProfiles = SettLoader4matilda().loadOneSett(SETT_DATAHOLDR_MSSNGR_PRFLS).toHash();
 
-    emit setEventManagerRules(hashRules, hashProfiles);
+
+
+    emit setEventManagerRules(hashRules, hashProfiles, FireflyFileSettHelper::getDevPos());
 
 
 }

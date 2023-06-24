@@ -2,6 +2,7 @@
 #define DATAHOLDERSHAREDOBJECTPROCESSOR_H
 
 #include <QObject>
+#include <QPointF>
 
 ///[!] MatildaIO
 #include "conditions-checker/mylinesinterpretator.h"
@@ -20,6 +21,8 @@ public:
     MyLinesInterpretator *iterator;
 
     MyMethodsParamsList availableMethods;
+
+    QPointF devCoordinate;
 
     MyEventsRules lastPollRules; //pollcodes != 0
 
@@ -91,7 +94,7 @@ signals:
 public slots:
     void createLinesIterator();
 
-    void setEventManagerRules(QVariantHash hashRules, QVariantHash hashProfiles);
+    void setEventManagerRules(QVariantHash hashRules, QVariantHash hashProfiles, QPointF devCoordinate);
 
     void checkThisDeviceNoDataOrModem(const quint16 &pollCode, const QString &devID, const DHMsecRecord &oneRecord, const bool &modemFail);
 

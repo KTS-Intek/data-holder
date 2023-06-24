@@ -28,6 +28,7 @@ DEFINES += "MYAPPOWNERSITE=\"\\\"http://kts-intek.com\\\"\""
 #DEFINES += DISABLE_RUN_PROCESS
 
 #include(../../Matilda-units/ipc/localsockets/localsockets.pri)
+DEFINES += DONOTINCLUDEZBYRATORSHARED
 
 include(../../../Matilda-units/matilda-base/MatildaIO/MatildaIO.pri)
 include(../../../Matilda-units/matilda-base/type-converter/type-converter.pri)
@@ -36,6 +37,11 @@ include(../../../Matilda-units/ipc/localsockets/localsockets.pri)
 
 include(../../../Matilda-units/ipc/sharedmemory/sharedmemory.pri)
 
+include(../../../Matilda-units/firefly/firefly-shared/firefly-shared.pri)
+include(../../../Matilda-units/firefly/firefly-settings/firefly-settings.pri)
+
+include(../../../Matilda-units/tasks/tasks-types/tasks-types.pri)
+include(../../../Matilda-units/tasks/tasks-shared/tasks-shared.pri)
 
 DEFINES += ENABLE_SETTLOADER4MATILDA
 

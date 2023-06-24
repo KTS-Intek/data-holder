@@ -43,7 +43,7 @@ public:
 signals:
     void onDataTableChanged();
 
-    void setEventManagerRules(QVariantHash hashRules, QVariantHash hashProfiles);
+    void setEventManagerRules(QVariantHash hashRules, QVariantHash hashProfiles, QPointF devCoordinate);
 
 
     void sendCommand2pollDevStr(quint16 pollCode, QString args);
