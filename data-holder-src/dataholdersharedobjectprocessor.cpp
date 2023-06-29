@@ -547,6 +547,7 @@ void DataHolderSharedObjectProcessor::setEventManagerRules(QVariantHash hashRule
 
     MyEventsRules lastRules = fromHashMyEventsRules(hashRules, hashProfiles);
 
+    hRuleName2badEvents.clear();
     lastPollRules.clear();
     lastSystemRules.clear();
 
@@ -608,7 +609,7 @@ void DataHolderSharedObjectProcessor::checkThisDevice(const quint16 &pollCode, c
     auto hdata = hdataFromOneRecord(devID, oneRecord);
     hdata.insert("evntType", "exchng");
     //    smartEvntProcessor(who, evntType, pollCode, lastPollRules.value(pollCode), hdata);
-    smartEvntProcessor(devID, "exchng", pollCode, lastPollRules.value(pollCode), hdata);
+    smartEvntProcessor(devID, QString("%1\n%2").arg(hdata.value("SN")).arg("exchng"), pollCode, lastPollRules.value(pollCode), hdata);
 
 
 
@@ -813,6 +814,8 @@ void DataHolderSharedObjectProcessor::smartEvntProcessor(const QString &devIdWho
         auto ruleCounterHash = hRulesCounter.value(ruleNameLineKey) ;
         const QString ruleCounterKey = QString("%1\n%2\n%3").arg(int(pollCode)).arg(devIdWho).arg(additionalIdEvntType);
 
+        //
+//    smartEvntProcessor(devID, modemFail ? "nMdm" : "nAnswr", 0, lastSystemRules.value(0), hdata);
 
         auto ruleCounter = ruleCounterHash.value(ruleCounterKey, 0);
 
@@ -826,7 +829,18 @@ void DataHolderSharedObjectProcessor::smartEvntProcessor(const QString &devIdWho
                 qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice " << out << errorList << oneRule.ruleLine;
             //            removeBrokenRules.append(oneRule.ruleLine);
 
-            emit append2log(tr("Bad rule %1, %2, %3").arg(oneRule.ruleName).arg(oneRule.ruleLine).arg(errorList.join("\n").left(800)));
+            //it can happen when a system rule is checked as an exchange rule
+
+            if(hRuleName2badEvents.value(oneRule.ruleName).contains(ruleCounterKey))
+                continue; //show only once a time
+
+            QStringList l = hRuleName2badEvents.value(oneRule.ruleName);
+            l.append(ruleCounterKey);
+            hRuleName2badEvents.insert(oneRule.ruleName, l);
+            const QString s = QString("%1, %2, %3, %4, %5, %6").arg(oneRule.ruleLine).arg(ruleCounterKey).arg(devIdWho).arg(hdata.value("NI")).arg(hdata.value("SN")).arg(errorList.size()).replace("\n", "-");
+
+            if(!errorList.isEmpty())
+                emit append2log(QString("%1, %2, %3").arg(oneRule.ruleName).arg(s).arg(errorList.join("\n").left(800)));
             continue;
         }
 
@@ -839,7 +853,8 @@ void DataHolderSharedObjectProcessor::smartEvntProcessor(const QString &devIdWho
                 qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice ruleCounter reset" << ruleCounter << oneRule.limitExecutions << oneRule.ruleLine << oneRule.ruleName << ruleCounterKey;
 
             if(ruleCounterHash.value(ruleCounterKey, 0) > 0){
-                emit append2log(tr("rule reset counter %1, %2").arg(oneRule.ruleName).arg(ruleCounter));
+                emit append2log(tr("rule reset counter %1, %2, %3, %4")
+                                .arg(oneRule.ruleName).arg(ruleCounter).arg(QString(ruleCounterKey).replace("\n", "-")).arg(devIdWho + ", " + hdata.value("SN")));
 
                 ruleCounterHash.insert(ruleCounterKey, 0);
                 hRulesCounter.insert(ruleNameLineKey, ruleCounterHash);//reset the counter
@@ -863,7 +878,8 @@ void DataHolderSharedObjectProcessor::smartEvntProcessor(const QString &devIdWho
 
         hRulesCounter.insert(ruleNameLineKey, ruleCounterHash);
 
-        emit append2log(tr("rule accepted counter %1, %2").arg(oneRule.ruleName).arg(ruleCounter));
+        emit append2log(tr("rule accepted counter %1, %2, %3, %4")
+                        .arg(oneRule.ruleName).arg(ruleCounter).arg(QString(ruleCounterKey).replace("\n", "-")).arg(devIdWho + ", " + hdata.value("SN")));
 
 
         if(verboseMode)

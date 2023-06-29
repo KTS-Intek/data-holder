@@ -28,6 +28,7 @@ public:
 
     MyEventsRules lastSystemRules; //pollcode = 0
 
+    QHash<QString, QStringList > hRuleName2badEvents; //coz system events have different keys,
 
     QStringList listRulesWithErrors;
 
