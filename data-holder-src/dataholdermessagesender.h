@@ -71,7 +71,15 @@ private:
         LastSmartPing lastPing;
 
         quint16 ipcPingRoundCounter;
-        MessageSenderState() : evntMessangerFailedSendCounter(0), isWaiting4pingAnswer(false), ipcPingRoundCounter(0) {}
+
+        quint16 ifaceRestartCounter;
+
+//        QString myTestString;//use it for testing only, do not use it in production
+
+        MessageSenderState() : evntMessangerFailedSendCounter(0),
+            isWaiting4pingAnswer(false), ipcPingRoundCounter(0), ifaceRestartCounter(0)
+//            , myTestString("ktsrest.ddns.net")
+           {}
     } myState;
 
 

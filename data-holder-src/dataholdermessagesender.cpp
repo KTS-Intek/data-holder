@@ -57,41 +57,76 @@ void DataHolderMessageSender::sendAMessageDevMap(QVariantMap mapArgs)
     if(!isTelegram)
         return;
 
-    if(!sendThisDevMap(mapArgs, true) ){
+    if(sendThisDevMap(mapArgs, true) ){
+//        emit append2log(tr("DataHolderMessageSender::sendAMessageDevMap 103 askReset=%1, evntMessangerFailedSendCounter=%2").arg("-").arg(int(myState.evntMessangerFailedSendCounter)));
+
+        myState.evntMessangerFailedSendCounter = 0;
+        return;
+    }
+
+    if(myState.ifaceRestartCounter == myState.evntMessangerFailedSendCounter && myState.evntMessangerFailedSendCounter == 0){
+        myState.evntMessangerFailedSendCounter = 2; //force to reset the interface
+//        emit append2log(tr("DataHolderMessageSender::sendAMessageDevMap 69 ifaceRestartCounter=%1, evntMessangerFailedSendCounter=%2").arg(int(myState.ifaceRestartCounter)).arg(int(myState.evntMessangerFailedSendCounter)));
+
+    }
+
+    for(int i = 0; i < 9; i++){
+
 
         //        emit smartPingTheseHosts(QString("api.telegram.org").split(" "), "some tag here to accecpt the result"); wait 10-15 sec, and try again
 
 
         myState.evntMessangerFailedSendCounter++;
 
-//        if(myState.evntMessangerFailedSendCounter < 3){ //for testing, if it works, remove the counter
+        //        if(myState.evntMessangerFailedSendCounter < 3){ //for testing, if it works, remove the counter
 
 
-            quint8 askReset = 0;
-
-            if(myState.evntMessangerFailedSendCounter > 1 && myState.evntMessangerFailedSendCounter < 10){
+        quint8 askReset = 0;
 
 
-                switch(myState.evntMessangerFailedSendCounter){
-                //                case 2: restartDhcp(); break;
-                case 3: askReset = 1; break; // restartIface(false); break;
-                case 5: {
-                    myState.evntMessangerFailedSendCounter = 400; //do it only once;
-                    askReset = 2;
-//                    restartIface(true);
-                    break; }
-                }
+
+        if(myState.evntMessangerFailedSendCounter > 1 && myState.evntMessangerFailedSendCounter < 10){
+
+
+            switch(myState.evntMessangerFailedSendCounter){
+            //                case 2: restartDhcp(); break;
+            case 3: askReset = 1; break; // restartIface(false); break;
+            case 5: {
+                myState.evntMessangerFailedSendCounter = 0;//as many as it needs
+                askReset = 2;
+                //                    restartIface(true);
+                break; }
             }
+        }
 
-            //use matilda bbb to reset the interface
-            if( startIPCPingTest("api.telegram.org", askReset) && sendThisDevMap(mapArgs, false)){ //isTelegram
-                myState.evntMessangerFailedSendCounter = 0;
-                return;
-            }
 
-    }else{
-        myState.evntMessangerFailedSendCounter = 0;
+
+        QElapsedTimer tmr;
+        tmr.start();
+        //use matilda bbb to reset the interface
+        if( startIPCPingTest("api.telegram.org", askReset) && sendThisDevMap(mapArgs, false)){ //isTelegram
+            emit append2log(tr("DataHolderMessageSender::sendAMessageDevMap 96 askReset=%1, evntMessangerFailedSendCounter=%2").arg(askReset).arg(int(myState.evntMessangerFailedSendCounter)));
+
+            myState.evntMessangerFailedSendCounter = 0;
+            return;
+        }
+
+        if(tmr.elapsed() < 15000)
+            QThread::sleep(5);
+        if(askReset > 0){
+            myState.ifaceRestartCounter++;
+            QThread::sleep(10); //wait a moment after reset
+        }
+
+
+        emit append2log(tr("DataHolderMessageSender::sendAMessageDevMap 102 i=%1, evntMessangerFailedSendCounter=%2").arg(i).arg(int(myState.evntMessangerFailedSendCounter)));
+
+
+
+
+
     }
+
 
 }
 
@@ -115,6 +150,8 @@ bool DataHolderMessageSender::sendThisDevMap(const QVariantMap &mapArgs, const b
 //script arguments    json.insert("__args", mapProfiles.value(ll.at(1)).args);
 //message, html encoded    json.insert("__message", line.mid(indxFrom) );
 
+    emit append2log(tr("DataHolderMessageSender::sendThisDevMap args=%1, silent=%2").arg(mapArgs.value("__args").toString()).arg(int(silent)));
+
 
     QStringList strArgs;
     if(!mapArgs.value("__args").toString().isEmpty())
@@ -134,6 +171,10 @@ bool DataHolderMessageSender::sendThisDevMap(const QVariantMap &mapArgs, const b
     if(strArgs.isEmpty()){
         if(verboseMode)
             qDebug() << "sendCommand2pollDevMap strArgs.isEmpty"  << mapArgs ;
+
+
+        emit append2log(tr("DataHolderMessageSender::sendThisDevMap strArgs=%1, isEmpty=%2").arg(strArgs.join("\n")).arg(int(strArgs.isEmpty())));
+
         return true;
     }
 
@@ -144,8 +185,13 @@ bool DataHolderMessageSender::sendThisDevMap(const QVariantMap &mapArgs, const b
     if(verboseMode)
         qDebug() << "sendCommand2pollDevMap " << readArr << mapArgs <<  strArgs;
 
-    if(!mapArgs.value("__path").toString().contains("telegram")) //only for telegram sender
+    if(!mapArgs.value("__path").toString().contains("telegram")){ //only for telegram sender
+
+        emit append2log(tr("DataHolderMessageSender::sendThisDevMap path=%1, contains=%2")
+                        .arg(mapArgs.value("__path").toString()).arg(int(mapArgs.value("__path").toString().contains("telegram"))));
+
         return true;
+    }
 
     if(!readArr.isEmpty()){
         //telegram send check, add for others, later

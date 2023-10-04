@@ -852,6 +852,41 @@ void DataHolderSharedObjectProcessor::smartEvntProcessor(const QString &devIdWho
             if(verboseMode)
                 qDebug() << "DataHolderSharedObjectProcessor::checkThisDevice ruleCounter reset" << ruleCounter << oneRule.limitExecutions << oneRule.ruleLine << oneRule.ruleName << ruleCounterKey;
 
+
+            //it is the most dangerous place, it can reset rules by mistake
+            //cases
+            //nAnswr - it is the real headache
+
+            if(ruleCounterKey.contains("nAnswr")){
+                //for test only , I need to find out what is wrong with it
+                if(ruleCounterHash.value(ruleCounterKey, 0) > 0){
+
+
+
+                    emit append2log(tr("asking 4 rule reset counter ruleName=%1, ruleCounter=%2, ruleCounterKey=%3, cntr=%4")
+                                    .arg(oneRule.ruleName)
+                                    .arg(ruleCounter)
+                                    .arg(QString(ruleCounterKey).replace("\n", "-"))
+                                    .arg(QString::number(ruleCounterHash.value(ruleCounterKey, 0))));
+
+                    QStringList listInfo;
+                    auto lkh = hdata.keys();
+                    std::sort(lkh.begin(), lkh.end());
+                    for(int jjj = 0, jjjMax = lkh.size(); jjj < jjjMax; jjj++){
+                        listInfo.append(QString("%1-%2").arg(lkh.at(jjj)).arg(hdata.value(lkh.at(jjj))));
+                    }
+
+                    emit append2log(tr("aking info\n%1").arg(listInfo.join("\n")));
+
+//                    ruleCounterHash.insert(ruleCounterKey, 0);
+                    hRulesCounter.insert(ruleNameLineKey, ruleCounterHash);//reset the counter
+                }
+                continue;
+
+            }
+
+
+
             if(ruleCounterHash.value(ruleCounterKey, 0) > 0){
                 emit append2log(tr("rule reset counter %1, %2, %3, %4")
                                 .arg(oneRule.ruleName).arg(ruleCounter).arg(QString(ruleCounterKey).replace("\n", "-")).arg(devIdWho + ", " + hdata.value("SN")));
